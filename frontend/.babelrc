@@ -1,0 +1,8 @@
+{
+  "plugins": ["babel-plugin-styless"],
+  "presets": [
+    "@babel/preset-env", 
+    "@babel/preset-react",
+    ["react-app", { "absoluteRuntime": false }]
+  ]
+}

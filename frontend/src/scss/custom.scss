@@ -1,0 +1,9 @@
+// Custom
+$font-size-base: 1rem;
+
+// Bootstrap
+@import 'bootstrap/scss/bootstrap';
+
+.has-errors {
+    @extend .is-invalid !optional;
+}
