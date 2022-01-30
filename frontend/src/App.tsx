@@ -9,17 +9,17 @@ import i18next, { i18nNamespace } from "./services/i18n";
 import { ExternalLocaleState, externalLocaleReducer, initialExternalLocaleState } from "./actions/ExternalLocale";
 import { GlobalStyle } from "./styles/GlobalStyle";
 import "./scss/custom.scss";
-import { NavState } from "./layout/Navigation";
 import Toaster, { addToast as toast, ToasterTypes } from "./layout/Toaster";
+import { NavState } from "./layout/NavToggle";
 import Overlay, { OverlayState } from "./layout/Overlay";
 import LoaderSpinner from "./components/LoaderSpinner";
-import { Themes, availableThemes } from "./tools/Themes";
+import Theme, { Themes, availableThemes } from "./tools/Themes";
 import BackTop from "./tools/BackTop";
 
 export const AppContext = createContext<{
   testMode: boolean;
   theme: Themes;
-  getTheme: (value: Themes) => void;
+  getTheme: (value: Themes) => Theme;
   setTheme: (value: Themes) => void;
   navState: NavState;
   toggleNav: (override?: NavState, overlay?: boolean) => void;
@@ -34,7 +34,7 @@ export const AppContext = createContext<{
 }>({
   testMode: false,
   theme: Themes.DARK,
-  getTheme: () => null,
+  getTheme: () => availableThemes[Themes.DARK],
   setTheme: () => null,
   navState: NavState.CLOSED,
   toggleNav: () => null,
@@ -61,14 +61,14 @@ const App: React.FunctionComponent = (): JSX.Element => {
 
   const [theme, setTheme] = useState(parseInt(localStorage.getItem("theme") ?? sysTheme.toString()));
   const [language, setLanguage] = useState(localStorage.getItem("language") ?? i18n.language ?? Constants.DEFAULT_LANG);
-  const [navState, setNavState] = useState((localStorage.getItem("navState") as NavState) || NavState.CLOSED);
+  const [navState, setNavState] = useState(NavState.CLOSED);
   const [overlayState, setOverlayState] = useState(OverlayState.HIDE);
   const [externalLocaleState, dispatchExternalLocaleState] = useReducer(
     externalLocaleReducer,
     localExternalLocaleState
   );
 
-  const getTheme = (theme: Themes) => {
+  const getTheme = (theme: Themes): Theme => {
     return availableThemes[theme];
   };
 

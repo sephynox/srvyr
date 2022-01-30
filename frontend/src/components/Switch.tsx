@@ -2,8 +2,8 @@ import React from "react";
 import { useEffect } from "react";
 import { useState } from "react";
 import styled from "styled-components";
+
 import { ThemeEngine } from "../styles/GlobalStyle";
-import Theme from "../tools/Themes";
 
 type Props = {
   size: number;
@@ -42,7 +42,7 @@ const Switch = (props: Props): JSX.Element => {
 
 export default Switch;
 
-const SwitchStyle = styled.div<Theme>`
+const SwitchStyle = styled.div`
   position: relative;
   display: inline-block;
 

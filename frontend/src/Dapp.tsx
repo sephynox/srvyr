@@ -1,4 +1,4 @@
-import React, { createContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import { BrowserRouter } from "react-router-dom";
 import styled from "styled-components";
 import { DAppProvider } from "@usedapp/core";
@@ -14,6 +14,7 @@ import Footer from "./layout/Footer";
 import { ethersConfig, navLinks } from "./Data";
 //import Routes from "./dapps/Routes";
 import { ethers } from "ethers";
+import { AppContext } from "./App";
 
 export const DappContext = createContext<{
   ethersProvider: ethers.providers.Provider;
@@ -34,6 +35,8 @@ export const DappContext = createContext<{
 });
 
 const Dapp: React.FunctionComponent = (): JSX.Element => {
+  const appContext = useContext(AppContext);
+
   const [activeAddress, setActiveAddress] = useState<EnsLookupState | undefined>({
     ...initialEnsLookupState,
     ...(JSON.parse(localStorage.getItem("activeAddress") ?? "{}") as EnsLookupState),
@@ -106,7 +109,7 @@ const Dapp: React.FunctionComponent = (): JSX.Element => {
       <BrowserRouter>
         <DappContext.Provider value={dappContext}>
           <Header>
-            <DappNavigation navLinks={navLinks} />
+            <DappNavigation links={navLinks} navState={appContext.navState} />
           </Header>
           <MainStyle>{/* <Routes /> */}</MainStyle>
           <Footer />

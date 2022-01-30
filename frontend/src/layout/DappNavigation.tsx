@@ -1,19 +1,26 @@
 import React, { useContext } from "react";
+import { Col, Row } from "react-bootstrap";
 import styled from "styled-components";
-import { ThemeEngine } from "../styles/GlobalStyle";
+
 import { AppContext } from "../App";
+import { ThemeEngine } from "../styles/GlobalStyle";
 import LanguageSelector from "./LanguageSelector";
 import Logo from "./Logo";
-import { NavigationProps } from "./Navigation";
+import { NavBlock } from "./Navigation";
 import WalletConnect from "./WalletConnect";
 import ToggleTheme from "./ToggleTheme";
-import { Col, Row } from "react-bootstrap";
+import { NavState } from "./NavToggle";
 
-const DappNavigation: React.FunctionComponent<NavigationProps> = (): JSX.Element => {
+type Props = {
+  links: NavBlock[];
+  navState: NavState;
+};
+
+const DappNavigation: React.FunctionComponent<Props> = ({ navState }): JSX.Element => {
   const appContext = useContext(AppContext);
 
   return (
-    <NavStyle>
+    <NavStyle navState={navState}>
       <Logo mode={appContext.theme} />
       <WalletConnect />
       <ul></ul>
@@ -59,7 +66,7 @@ export const NavStyle = styled.nav`
   }
 
   @media screen and (max-width: 992px) {
-    padding: 0 0 0 15px;
-    left: calc(var(--srvyr-header-width) - (var(--srvyr-header-width) * 2));
+    left: ${(props: Props) =>
+      props.navState === NavState.OPEN ? 0 : "calc(var(--srvyr-header-width) - (var(--srvyr-header-width) * 2))"};
   }
 `;

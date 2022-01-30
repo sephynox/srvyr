@@ -169,6 +169,7 @@ const BlockieStyle = styled(Blockie)`
 
 const AccountMenuStyle = styled.aside`
   display: ${(props: { state: WalletMenuStates }) => (props.state === WalletMenuStates.CLOSED ? "none" : "block")};
+  position: fixed;
 
   min-width: 210px;
   padding-top: 15px;
@@ -190,15 +191,15 @@ const AccountMenuStyle = styled.aside`
     left: 15px;
     right: 0;
     margin-top: 10px;
-    max-width: 300px;
+    max-width: var(--srvyr-header-width);
 
-    position: fixed;
     z-index: 999;
     box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
     border-radius: 3px;
   }
 
   @media screen and (max-width: 992px) {
+    max-width: calc(var(--srvyr-header-width) - 30px);
   }
 `;
 

@@ -1,4 +1,5 @@
 import * as React from "react";
+
 import { availableThemes, Themes } from "../tools/Themes";
 
 type Props = {

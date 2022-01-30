@@ -1,9 +1,9 @@
 import React, { Component, useContext } from "react";
 import { useTranslation } from "react-i18next";
 import { NavLink } from "react-router-dom";
-import styled from "styled-components";
 
 import { AppContext } from "../App";
+import { NavState } from "./NavToggle";
 
 export type Crumb = {
   text: string;
@@ -19,11 +19,6 @@ export type NavigationProps = {
 export type BreadcrumbsProps = {
   links: Array<Crumb>;
 };
-
-export enum NavState {
-  OPEN = "active",
-  CLOSED = "",
-}
 
 export type NavBlock = {
   text: string;
@@ -46,33 +41,3 @@ export const NavItem = ({ keyId, text, icon, to, className = "nav-link" }: NavBl
     </NavLink>
   );
 };
-
-export const NavToggle = (): JSX.Element => {
-  const appContext = useContext(AppContext);
-
-  return (
-    <NavToggleStyle
-      type="button"
-      onClick={() => {
-        appContext.toggleNav(undefined, true);
-      }}
-      className={appContext.navState === NavState.CLOSED ? "bi bi-list mobile-nav-toggle" : `bi bi-x mobile-nav-toggle`}
-    ></NavToggleStyle>
-  );
-};
-
-const NavToggleStyle = styled.button`
-  position: fixed;
-  right: 20px;
-  top: 10px;
-  z-index: 1000;
-  border: 0;
-  background: none;
-  font-size: 28px;
-  transition: all 0.4s;
-  outline: none !important;
-  line-height: 0;
-  cursor: pointer;
-  border-radius: 50px;
-  padding: 5px;
-`;

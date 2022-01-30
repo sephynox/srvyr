@@ -1,9 +1,9 @@
 import React from "react";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
+
 import * as Constants from "../Constants";
 import { ThemeEngine } from "../styles/GlobalStyle";
-import Theme from "../tools/Themes";
 
 const Footer: React.FunctionComponent = (): JSX.Element => {
   const { t } = useTranslation();
@@ -17,7 +17,7 @@ const Footer: React.FunctionComponent = (): JSX.Element => {
 
 export default Footer;
 
-const FooterStyle = styled.footer<Theme>`
+const FooterStyle = styled.footer`
   width: 100%;
   height: var(--srvyr-footer-height);
   padding: 20px;
