@@ -1,8 +1,9 @@
-import React, { useContext } from "react";
+import React from "react";
 import { ToastContainer, toast, ToastOptions } from "react-toastify";
 
-import { AppContext } from "../App";
-import { Themes } from "../tools/Themes";
+type Props = {
+  theme: "light" | "dark";
+};
 
 export enum ToasterTypes {
   SUCCESS,
@@ -26,15 +27,14 @@ export const addToast = (message: string, type: ToasterTypes = ToasterTypes.INFO
   }
 };
 
-const Toaster: React.FunctionComponent = (): JSX.Element => {
-  const appContext = useContext(AppContext);
+const Toaster: React.FunctionComponent<Props> = ({ theme }): JSX.Element => {
   const toastConfig: ToastOptions = {
     autoClose: 5000,
     pauseOnHover: true,
     hideProgressBar: false,
     closeOnClick: true,
     position: "bottom-right",
-    theme: appContext.theme === Themes.LIGHT ? "light" : "dark",
+    theme: theme,
   };
 
   return <ToastContainer {...toastConfig} />;

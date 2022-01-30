@@ -1,3 +1,4 @@
+import { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import React, { Component, useContext } from "react";
 import { useTranslation } from "react-i18next";
 import { NavLink } from "react-router-dom";
@@ -22,7 +23,7 @@ export type BreadcrumbsProps = {
 
 export type NavBlock = {
   text: string;
-  icon: string;
+  icon: IconDefinition;
   to: string;
   component: () => JSX.Element | Component;
   keyId?: number;

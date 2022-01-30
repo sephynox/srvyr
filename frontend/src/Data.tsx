@@ -1,14 +1,28 @@
+import { t } from "i18next";
+import { faHome, faArchway } from "@fortawesome/free-solid-svg-icons";
+
 import { NavBlock } from "./layout/Navigation";
 import Home from "./pages/Home";
+import Overview from "./pages/Overview";
 import { SocialBlock } from "./components/SocialLinks";
 
 export const navLinks: Array<NavBlock> = [
   {
-    text: "home",
-    icon: "icon bi-house",
+    text: t("home"),
+    icon: faHome,
     to: "/",
     exact: true,
     component: Home,
+  },
+];
+
+export const dappNavLinks: Array<NavBlock> = [
+  {
+    text: t("overview"),
+    icon: faArchway,
+    to: "/",
+    exact: true,
+    component: Overview,
   },
 ];
 

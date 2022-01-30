@@ -170,6 +170,7 @@ const BlockieStyle = styled(Blockie)`
 const AccountMenuStyle = styled.aside`
   display: ${(props: { state: WalletMenuStates }) => (props.state === WalletMenuStates.CLOSED ? "none" : "block")};
   position: fixed;
+  z-index: 999;
 
   min-width: 210px;
   padding-top: 15px;
@@ -193,13 +194,15 @@ const AccountMenuStyle = styled.aside`
     margin-top: 10px;
     max-width: var(--srvyr-header-width);
 
-    z-index: 999;
     box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
     border-radius: 3px;
   }
 
   @media screen and (max-width: 992px) {
     max-width: calc(var(--srvyr-header-width) - 30px);
+
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
   }
 `;
 
@@ -269,5 +272,14 @@ const AccountControlStyle = styled.article`
 
   & aside figure:hover {
     background-color: ${(props: ThemeEngine) => props.theme.backgroundSecondary};
+  }
+
+  @media screen and (max-width: 992px) {
+    > button {
+      border-top-right-radius: 10px;
+      border-top-right-radius: 10px;
+      border-bottom-left-radius: 0px;
+      border-bottom-right-radius: 0px;
+    }
   }
 `;

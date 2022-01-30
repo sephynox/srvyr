@@ -5,11 +5,10 @@ import { Helmet } from "react-helmet-async";
 import * as Constants from "../Constants";
 import { Section } from "../styles/Section";
 
-const Main: React.FunctionComponent = (): JSX.Element => {
+const Overview = (): JSX.Element => {
   const { t } = useTranslation();
 
-  const title = "Application Home";
-  const subtext = t("content.home");
+  const title = t("content.overview");
 
   return (
     <>
@@ -21,12 +20,10 @@ const Main: React.FunctionComponent = (): JSX.Element => {
       </Helmet>
       <Section>
         <h1>{title}</h1>
-        <header>
-          <em>{subtext}</em>
-        </header>
+        <header></header>
       </Section>
     </>
   );
 };
 
-export default Main;
+export default Overview;

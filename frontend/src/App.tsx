@@ -2,10 +2,10 @@ import React, { createContext, Dispatch, Suspense, useCallback, useEffect, useRe
 import { useTranslation } from "react-i18next";
 import { ThemeProvider } from "styled-components";
 
+import i18next, { i18nNamespace } from "./services/i18n";
 import * as Constants from "./Constants";
 import Dapp from "./Dapp";
 import { supportedLanguages } from "./Data";
-import i18next, { i18nNamespace } from "./services/i18n";
 import { ExternalLocaleState, externalLocaleReducer, initialExternalLocaleState } from "./actions/ExternalLocale";
 import { GlobalStyle } from "./styles/GlobalStyle";
 import "./scss/custom.scss";
@@ -138,7 +138,7 @@ const App: React.FunctionComponent = (): JSX.Element => {
           <Dapp />
           <Overlay state={overlayState as OverlayState} />
           <BackTop textColor={getTheme(theme).text} backgroundColor={getTheme(theme).background} />
-          <Toaster />
+          <Toaster theme={theme === Themes.LIGHT ? "light" : "dark"} />
           <GlobalStyle />
         </AppContext.Provider>
       </ThemeProvider>

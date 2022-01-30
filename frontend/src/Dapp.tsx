@@ -11,8 +11,8 @@ import { EnsLookupState, initialEnsLookupState } from "./actions/Ethereum";
 import Header from "./layout/Header";
 import DappNavigation from "./layout/DappNavigation";
 import Footer from "./layout/Footer";
-import { ethersConfig, navLinks } from "./Data";
-//import Routes from "./dapps/Routes";
+import { ethersConfig, dappNavLinks } from "./Data";
+//import Routes from "./dapp/Routes";
 import { ethers } from "ethers";
 import { AppContext } from "./App";
 
@@ -109,7 +109,7 @@ const Dapp: React.FunctionComponent = (): JSX.Element => {
       <BrowserRouter>
         <DappContext.Provider value={dappContext}>
           <Header>
-            <DappNavigation links={navLinks} navState={appContext.navState} />
+            <DappNavigation links={dappNavLinks} navState={appContext.navState} />
           </Header>
           <MainStyle>{/* <Routes /> */}</MainStyle>
           <Footer />

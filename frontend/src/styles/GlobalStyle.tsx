@@ -29,8 +29,8 @@ $font-size-base: 1rem;
 
   --secondary: rgb(229 229 229);
 
-  --toastify-color-light: ${(props: ThemeEngine) => props.theme.backgroundSecondary};
-  --toastify-color-dark: ${(props: ThemeEngine) => props.theme.backgroundSecondary};
+  --toastify-color-light: ${(props: ThemeEngine) => props.theme.backgroundMenu};
+  --toastify-color-dark: ${(props: ThemeEngine) => props.theme.backgroundMenu};
   --toastify-color-info: ${(props: ThemeEngine) => props.theme.text};
   --toastify-color-success: ${(props: ThemeEngine) => props.theme.text};
   --toastify-color-warning: ${(props: ThemeEngine) => props.theme.text};
@@ -43,7 +43,7 @@ $font-size-base: 1rem;
   --toastify-icon-color-error: ${(props: ThemeEngine) => props.theme.dangerText};
 
   --toastify-toast-width: 320px;
-  --toastify-toast-background: ${(props: ThemeEngine) => props.theme.backgroundSecondary};
+  --toastify-toast-background: ${(props: ThemeEngine) => props.theme.backgroundMenu};
   --toastify-toast-min-height: 64px;
   --toastify-toast-max-height: 800px;
   --toastify-font-family: sans-serif;
@@ -123,5 +123,9 @@ code {
   color: ${(props: ThemeEngine) => props.theme.text};
   border-color: ${(props: ThemeEngine) => props.theme.backgroundSecondary};
   background-color: ${(props: ThemeEngine) => props.theme.backgroundSecondary};
+}
+
+.Toastify__toast-container--bottom-right {
+   bottom: 4em;
 }
 `;
