@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Link } from "react-router-dom";
 
 import { availableThemes, Themes } from "../tools/Themes";
 
@@ -7,7 +8,11 @@ type Props = {
 };
 
 const Logo: React.FunctionComponent<Props> = ({ mode }: Props): JSX.Element => {
-  return <img id="logo" src={availableThemes[mode].images.logo} alt="SRVYR" />;
+  return (
+    <Link to="/">
+      <img id="logo" src={availableThemes[mode].images.logo} alt="SRVYR" />
+    </Link>
+  );
 };
 
 export default Logo;

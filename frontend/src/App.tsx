@@ -4,7 +4,6 @@ import { ThemeProvider } from "styled-components";
 
 import i18next, { i18nNamespace } from "./services/i18n";
 import * as Constants from "./Constants";
-import Dapp from "./Dapp";
 import { supportedLanguages } from "./Data";
 import { ExternalLocaleState, externalLocaleReducer, initialExternalLocaleState } from "./actions/ExternalLocale";
 import { GlobalStyle } from "./styles/GlobalStyle";
@@ -15,6 +14,7 @@ import Overlay, { OverlayState } from "./layout/Overlay";
 import LoaderSpinner from "./components/LoaderSpinner";
 import Theme, { Themes, availableThemes } from "./tools/Themes";
 import BackTop from "./tools/BackTop";
+import { Outlet } from "react-router-dom";
 
 export const AppContext = createContext<{
   testMode: boolean;
@@ -22,7 +22,6 @@ export const AppContext = createContext<{
   getTheme: (value: Themes) => Theme;
   setTheme: (value: Themes) => void;
   navState: NavState;
-  toggleNav: (override?: NavState, overlay?: boolean) => void;
   setNavState: (value: NavState) => void;
   externalLocaleState: ExternalLocaleState;
   language: string;
@@ -37,7 +36,6 @@ export const AppContext = createContext<{
   getTheme: () => availableThemes[Themes.DARK],
   setTheme: () => null,
   navState: NavState.CLOSED,
-  toggleNav: () => null,
   setNavState: () => null,
   externalLocaleState: initialExternalLocaleState,
   language: Constants.DEFAULT_LANG,
@@ -72,16 +70,6 @@ const App: React.FunctionComponent = (): JSX.Element => {
     return availableThemes[theme];
   };
 
-  const toggleNav = (override?: NavState, overlay?: boolean) => {
-    const state = override ?? navState === NavState.CLOSED ? NavState.OPEN : NavState.CLOSED;
-
-    setNavState(state);
-
-    if (overlay) {
-      setOverlayState(state === NavState.OPEN ? OverlayState.SHOW : OverlayState.HIDE);
-    }
-  };
-
   const logEvent = (event: Record<string, string>, debug = false) => {
     return null;
   };
@@ -95,6 +83,10 @@ const App: React.FunctionComponent = (): JSX.Element => {
     },
     [i18n]
   );
+
+  useEffect(() => {
+    setOverlayState(navState === NavState.OPEN ? OverlayState.SHOW : OverlayState.HIDE);
+  }, [navState]);
 
   useEffect(() => {
     localStorage.setItem("theme", theme.toString());
@@ -119,7 +111,6 @@ const App: React.FunctionComponent = (): JSX.Element => {
     getTheme,
     setTheme,
     navState,
-    toggleNav,
     setNavState,
     externalLocaleState,
     language,
@@ -134,8 +125,7 @@ const App: React.FunctionComponent = (): JSX.Element => {
     <Suspense fallback={<LoaderSpinner type="Pulse" size={20} />}>
       <ThemeProvider theme={availableThemes[theme]}>
         <AppContext.Provider value={appContext}>
-          {/* {window.location.host.split(".")[0] === "app" ? <Dapp /> : <Wapp />} */}
-          <Dapp />
+          <Outlet />
           <Overlay state={overlayState as OverlayState} />
           <BackTop textColor={getTheme(theme).text} backgroundColor={getTheme(theme).background} />
           <Toaster theme={theme === Themes.LIGHT ? "light" : "dark"} />

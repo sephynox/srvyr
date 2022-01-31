@@ -1,4 +1,5 @@
 {
+  "welcome": "Willkommen",
   "language": "Sprache",
   "home": "Startseite",
   "NFTs": "NFTs",
@@ -127,7 +128,9 @@
     "fractional": ","
   },
   "validation": {},
-  "content": {},
+  "content": {
+    "connect": "Schließen Sie Ihr Portemonnaie an, um loszulegen."
+  },
   "notification": {
     "account_added": "Account added: ",
     "account_switched": "Account switched: "

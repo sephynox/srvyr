@@ -5,6 +5,8 @@ import styled from "styled-components";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import { AppContext } from "../App";
+import { useEthers } from "@usedapp/core";
+
 import { ThemeEngine } from "../styles/GlobalStyle";
 import LanguageSelector from "./LanguageSelector";
 import Logo from "./Logo";
@@ -20,12 +22,12 @@ type Props = {
 
 const DappNavigation: React.FunctionComponent<Props> = ({ links, navState }): JSX.Element => {
   const appContext = useContext(AppContext);
+  const { active } = useEthers();
 
   const buildLink = (link: NavBlock): JSX.Element => {
     return (
       <li>
-        {" "}
-        <NavLinkStyle onClick={() => appContext.toggleNav(NavState.CLOSED, true)} to={link.to}>
+        <NavLinkStyle onClick={() => appContext.setNavState(NavState.CLOSED)} to={link.to}>
           <FontAwesomeIcon size="lg" icon={link.icon} /> <div>{link.text}</div>
         </NavLinkStyle>
       </li>
@@ -35,9 +37,20 @@ const DappNavigation: React.FunctionComponent<Props> = ({ links, navState }): JS
   return (
     <NavStyle navState={navState}>
       <Logo mode={appContext.theme} />
-      <WalletConnect />
-      <hr />
-      <NavLinksStyle>{links.map((link) => buildLink(link))}</NavLinksStyle>
+      {active ? (
+        <>
+          <WalletConnect />
+          <hr />
+          <NavLinksStyle>{links.map((link) => buildLink(link))}</NavLinksStyle>
+          <hr />
+        </>
+      ) : (
+        <>
+          <ul></ul>
+          <WalletConnect />
+          <ul></ul>
+        </>
+      )}
       <Row>
         <Col>
           <LanguageSelector language={appContext.language} setLanguage={appContext.setLanguage} />
@@ -112,6 +125,7 @@ const NavStyle = styled.nav`
   }
 
   @media screen and (max-width: 992px) {
+    z-index: 999;
     left: ${(props: Props) =>
       props.navState === NavState.OPEN ? 0 : "calc(var(--srvyr-header-width) - (var(--srvyr-header-width) * 2))"};
   }

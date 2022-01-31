@@ -1,7 +1,7 @@
 import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowsAltH, faChevronDown, faTimes } from "@fortawesome/free-solid-svg-icons";
+import { faChevronDown, faTimes } from "@fortawesome/free-solid-svg-icons";
 import { Button } from "react-bootstrap";
 import styled from "styled-components";
 import { useEthers } from "@usedapp/core";
@@ -11,6 +11,7 @@ import { ThemeEngine } from "../styles/GlobalStyle";
 import { AppContext } from "../App";
 import { DappContext } from "../Dapp";
 import { ToasterTypes } from "./Toaster";
+import LoaderSpinner from "../components/LoaderSpinner";
 import { Blockie, BlockieState } from "../components/Blockies";
 import { shortDisplayAddress } from "../utils/data-helpers";
 
@@ -31,6 +32,13 @@ const WalletConnect: React.FunctionComponent = (): JSX.Element => {
   if (error) {
     appContext.toast(error.message, ToasterTypes.ERROR);
   }
+
+  const deactivateConnection = () => {
+    dappContext.setActiveAddress(undefined);
+    dappContext.setUserAddresses([]);
+    deactivate();
+    appContext.toast(t("disconnected"), ToasterTypes.ERROR);
+  };
 
   const setAddressCloseMenu = (lookup: EnsLookupState) => {
     dappContext.setActiveAddress(lookup);
@@ -78,9 +86,7 @@ const WalletConnect: React.FunctionComponent = (): JSX.Element => {
         <FontAwesomeIcon icon={faChevronDown} />
       </figure>
     ) : (
-      <>
-        <FontAwesomeIcon icon={faArrowsAltH} /> {t("connect")}
-      </>
+      <LoaderSpinner type="Pulse" size={20} />
     );
   };
 
@@ -103,7 +109,7 @@ const WalletConnect: React.FunctionComponent = (): JSX.Element => {
   };
 
   const getDisconnect = (): JSX.Element => (
-    <button onClick={() => deactivate()}>
+    <button onClick={() => deactivateConnection()}>
       <figure>
         <FontAwesomeIcon icon={faTimes} />
         <figcaption>{t("disconnect")}</figcaption>
@@ -143,19 +149,23 @@ const WalletConnect: React.FunctionComponent = (): JSX.Element => {
   }, [dappContext, isActive]);
 
   return active ? (
-    <>
-      <AccountControlStyle>
-        <button onClick={toggleWalletButtonState}>{getProfileContents()}</button>
-        <AccountMenuStyle state={walletButtonState}>
-          <em>{t("accounts")}</em>
-          {getAllAccounts()}
-          <hr />
-          {getDisconnect()}
-        </AccountMenuStyle>
-      </AccountControlStyle>
-    </>
+    <AccountControlStyle>
+      <button onClick={toggleWalletButtonState}>{getProfileContents()}</button>
+      <AccountMenuStyle state={walletButtonState}>
+        <em>{t("accounts")}</em>
+        {getAllAccounts()}
+        <hr />
+        {getDisconnect()}
+      </AccountMenuStyle>
+    </AccountControlStyle>
   ) : (
-    <Button onClick={() => activateBrowserWallet()}>{t("connect")}</Button>
+    <article>
+      <h1>{t("welcome")}</h1>
+      <section>
+        <p>{t("content.connect")}</p>
+        <Button onClick={() => activateBrowserWallet()}>{t("connect")}</Button>
+      </section>
+    </article>
   );
 };
 
@@ -199,7 +209,7 @@ const AccountMenuStyle = styled.aside`
   }
 
   @media screen and (max-width: 992px) {
-    max-width: calc(var(--srvyr-header-width) - 30px);
+    width: calc(var(--srvyr-header-width) - 31px);
 
     border-bottom-left-radius: 10px;
     border-bottom-right-radius: 10px;

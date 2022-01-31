@@ -37,7 +37,7 @@ export const NavItem = ({ keyId, text, icon, to, className = "nav-link" }: NavBl
   const appContext = useContext(AppContext);
 
   return (
-    <NavLink onClick={() => appContext.toggleNav(NavState.CLOSED, true)} className={className} to={to}>
+    <NavLink onClick={() => appContext.setNavState(NavState.CLOSED)} className={className} to={to}>
       <i className={"nav-link" + icon}></i> <span>{t(text, text)}</span>
     </NavLink>
   );

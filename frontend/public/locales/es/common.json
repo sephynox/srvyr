@@ -1,4 +1,5 @@
 {
+  "welcome": "Bienvenido",
   "language": "Idioma",
   "home": "Portada",
   "NFTs": "NFTs",
@@ -127,7 +128,9 @@
     "fractional": "."
   },
   "validation": {},
-  "content": {},
+  "content": {
+    "connect": "Conecta tu cartera para empezar."
+  },
   "notification": {
     "account_added": "Account added: ",
     "account_switched": "Account switched: "
