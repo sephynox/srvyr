@@ -24,9 +24,9 @@ const DappNavigation: React.FunctionComponent<Props> = ({ links, navState }): JS
   const appContext = useContext(AppContext);
   const { active } = useEthers();
 
-  const buildLink = (link: NavBlock): JSX.Element => {
+  const buildLink = (link: NavBlock, index: number): JSX.Element => {
     return (
-      <li>
+      <li key={index}>
         <NavLinkStyle onClick={() => appContext.setNavState(NavState.CLOSED)} to={link.to}>
           <FontAwesomeIcon size="lg" icon={link.icon} /> <div>{link.text}</div>
         </NavLinkStyle>
@@ -41,7 +41,7 @@ const DappNavigation: React.FunctionComponent<Props> = ({ links, navState }): JS
         <>
           <WalletConnect />
           <hr />
-          <NavLinksStyle>{links.map((link) => buildLink(link))}</NavLinksStyle>
+          <NavLinksStyle>{links.map((link, i) => buildLink(link, i))}</NavLinksStyle>
           <hr />
         </>
       ) : (

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import BTable from "react-bootstrap/Table";
 import { useTable, Column } from "react-table";
 
@@ -15,27 +15,32 @@ export type Asset = {
 };
 
 const Assets: React.FunctionComponent<Props> = ({ data }): JSX.Element => {
-  const columns: readonly Column<Asset>[] = [
-    {
-      Header: "Asset",
-      accessor: "name",
-    },
-    {
-      Header: "Price",
-      accessor: "price",
-    },
-    {
-      Header: "Balance",
-      accessor: "balance",
-    },
-    {
-      Header: "Value",
-      accessor: "value",
-    },
-  ];
+  const memoizedData = useMemo(() => data, [data]);
+  const memoizedColumns: readonly Column<Asset>[] = useMemo(
+    () => [
+      {
+        Header: "Asset",
+        accessor: "name",
+      },
+      {
+        Header: "Price",
+        accessor: "price",
+      },
+      {
+        Header: "Balance",
+        accessor: "balance",
+      },
+      {
+        Header: "Value",
+        accessor: "value",
+      },
+    ],
+    []
+  );
+
   const { getTableProps, headerGroups, rows, prepareRow } = useTable({
-    columns,
-    data,
+    columns: memoizedColumns,
+    data: memoizedData,
   });
 
   // Render the UI for your table

@@ -12,7 +12,7 @@ module.exports = {
     ecmaVersion: 12,
   },
   rules: {
-    "max-line-length": [true, { limit: 120 }],
+    "max-line-length": [true, 120],
     "node/no-unsupported-features/es-syntax": ["error", { ignores: ["modules"] }],
   },
 };

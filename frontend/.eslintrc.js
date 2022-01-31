@@ -28,7 +28,6 @@ module.exports = {
     "import/first": "error",
     "react/prop-types": 0,
     "linebreak-style": ["error", "unix"],
-    "max-line-length": [true, 120],
   },
   ignorePatterns: ["build/"],
   settings: {
