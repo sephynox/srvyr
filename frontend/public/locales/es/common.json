@@ -1,5 +1,6 @@
 {
   "welcome": "Bienvenido",
+  "overview": "Resumen",
   "language": "Idioma",
   "home": "Portada",
   "NFTs": "NFTs",
@@ -12,6 +13,7 @@
   "email": "Email",
   "address": "Dirección",
   "copy": "Copiar",
+  "copied": "¡Copiado!",
   "cookie": "Cookie",
   "expiration": "Expira",
   "copyright": "© Derechos de Autor",

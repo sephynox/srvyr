@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, Dispatch, useContext, useEffect, useState } from "react";
 import { Outlet } from "react-router-dom";
 import styled from "styled-components";
 import { DAppProvider } from "@usedapp/core";
@@ -8,12 +8,19 @@ import { ethers } from "ethers";
 //import Web3Modal from "web3modal";
 
 import * as Constants from "./Constants";
-import { EnsLookupState, initialEnsLookupState } from "./actions/Ethereum";
+import { ethersConfig, dappNavLinks } from "./Data";
+import { AppContext } from "./App";
 import Header from "./layout/Header";
 import DappNavigation from "./layout/DappNavigation";
 import Footer from "./layout/Footer";
-import { ethersConfig, dappNavLinks } from "./Data";
-import { AppContext } from "./App";
+import {
+  EnsLookupCache,
+  EnsLookupState,
+  EnsLookupStates,
+  fetchAddress,
+  initiaEnsLookupCache,
+  initialEnsLookupState,
+} from "./actions/Ethereum";
 
 export const DappContext = createContext<{
   ethersProvider: ethers.providers.Provider;
@@ -22,7 +29,8 @@ export const DappContext = createContext<{
   setActiveAddress: (value: EnsLookupState | undefined) => void;
   userAddresses: EnsLookupState[];
   setUserAddresses: (value: EnsLookupState[]) => void;
-  resolveAddress: (address: string) => EnsLookupState | undefined;
+  lookupUserAddress: (address: string, user: boolean) => EnsLookupState | undefined;
+  resolveAddress: (address: string) => (dispatch: Dispatch<EnsLookupState>) => Promise<void>;
 }>({
   ethersProvider: ethers.getDefaultProvider(),
   setEthersProvider: () => null,
@@ -30,7 +38,11 @@ export const DappContext = createContext<{
   setActiveAddress: () => null,
   userAddresses: [],
   setUserAddresses: () => null,
-  resolveAddress: () => undefined,
+  lookupUserAddress: () => undefined,
+  resolveAddress: () => () =>
+    new Promise(() => {
+      return;
+    }),
 });
 
 const Dapp: React.FunctionComponent = (): JSX.Element => {
@@ -42,6 +54,9 @@ const Dapp: React.FunctionComponent = (): JSX.Element => {
   });
   const [userAddresses, setUserAddresses] = useState<EnsLookupState[]>(
     JSON.parse(localStorage.getItem("userAddresses") ?? "[]")
+  );
+  const [ensLookupCache, setEnsLookupCache] = useState<EnsLookupCache>(
+    JSON.parse(localStorage.getItem("ensLookupCache") ?? JSON.stringify(initiaEnsLookupCache))
   );
   const [ethersProvider, setEthersProvider] = useState<ethers.providers.Provider>(
     new ethers.providers.InfuraProvider(Constants.DEFAULT_ETHERS_NETWORK, ethersConfig)
@@ -81,15 +96,47 @@ const Dapp: React.FunctionComponent = (): JSX.Element => {
   //   providerOptions: getProviderOptions(),
   // });
 
-  const resolveAddress = (l: string): EnsLookupState | undefined => {
-    for (let i = 0; i < dappContext.userAddresses.length; i++) {
-      if (dappContext.userAddresses[i].data?.address === l) {
-        return dappContext.userAddresses[i];
-      } else if (dappContext.userAddresses[i].data?.ens === l) {
-        return dappContext.userAddresses[i];
+  const lookupUserAddress = (l: string): EnsLookupState | undefined => {
+    for (let i = 0; i < userAddresses.length; i++) {
+      if (userAddresses[i].data?.address === l) {
+        return userAddresses[i];
+      } else if (userAddresses[i].data?.ens === l) {
+        return userAddresses[i];
       }
     }
   };
+
+  const resolveAddress =
+    (address: string) =>
+    async (dispatch: Dispatch<EnsLookupState>): Promise<void> => {
+      const forward = ensLookupCache.forward[address];
+      const reverse = ensLookupCache.reverse[address];
+      const addCacheAddress = (state: EnsLookupState) => {
+        if (state.type === EnsLookupStates.SUCCESS || state.type === EnsLookupStates.NO_RESOLVE) {
+          if (!!state.data.address) {
+            ensLookupCache.forward = { ...ensLookupCache.forward, ...{ [state.data.address]: state } };
+          }
+
+          if (!!state.data.ens) {
+            ensLookupCache.reverse = { ...ensLookupCache.reverse, ...{ [state.data.ens]: state } };
+          }
+          setEnsLookupCache(ensLookupCache);
+        }
+
+        dispatch(state);
+      };
+
+      let promise: Promise<void>;
+
+      if (!!forward || !!reverse) {
+        promise = Promise.resolve();
+        dispatch(forward ?? reverse);
+      } else {
+        promise = new Promise(() => fetchAddress({ address: address }, ethersProvider)(addCacheAddress));
+      }
+
+      return promise;
+    };
 
   const dappContext = {
     ethersProvider,
@@ -98,11 +145,15 @@ const Dapp: React.FunctionComponent = (): JSX.Element => {
     setActiveAddress,
     userAddresses,
     setUserAddresses,
+    lookupUserAddress,
     resolveAddress,
   };
 
   useEffect(() => {
-    setActiveAddress(userAddresses[userAddresses.length - 1]);
+    localStorage.setItem("ensLookupCache", JSON.stringify(ensLookupCache));
+  }, [ensLookupCache]);
+
+  useEffect(() => {
     localStorage.setItem("userAddresses", JSON.stringify(userAddresses));
   }, [userAddresses]);
 

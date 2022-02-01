@@ -1,9 +1,9 @@
 import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Button, Spinner } from "react-bootstrap";
+import styled from "styled-components";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronDown, faTimes } from "@fortawesome/free-solid-svg-icons";
-import { Button } from "react-bootstrap";
-import styled from "styled-components";
 import { useEthers } from "@usedapp/core";
 
 import { EnsLookupState, EnsLookupStates, fetchAddress } from "../actions/Ethereum";
@@ -11,7 +11,6 @@ import { ThemeEngine } from "../styles/GlobalStyle";
 import { AppContext } from "../App";
 import { DappContext } from "../Dapp";
 import { ToasterTypes } from "./Toaster";
-import LoaderSpinner from "../components/LoaderSpinner";
 import { Blockie, BlockieState } from "../components/Blockies";
 import { shortDisplayAddress } from "../utils/data-helpers";
 
@@ -19,6 +18,32 @@ enum WalletMenuStates {
   OPENED,
   CLOSED,
 }
+
+export const CenterWalletConnectStyle = styled.section`
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  & article section {
+    text-align: center;
+  }
+`;
+
+// TODO Find a better place for this
+export const getBlockieState = (state: EnsLookupStates) => {
+  switch (state) {
+    case EnsLookupStates.EMPTY:
+      return BlockieState.EMPTY;
+    case EnsLookupStates.ERROR:
+      return BlockieState.ERROR;
+    case EnsLookupStates.FETCHING:
+      return BlockieState.FETCHING;
+    case EnsLookupStates.NO_RESOLVE:
+    case EnsLookupStates.SUCCESS:
+      return BlockieState.SUCCESS;
+  }
+};
 
 const WalletConnect: React.FunctionComponent = (): JSX.Element => {
   const appContext = useContext(AppContext);
@@ -57,20 +82,6 @@ const WalletConnect: React.FunctionComponent = (): JSX.Element => {
     }
   };
 
-  const getBlockieState = (state: EnsLookupStates) => {
-    switch (state) {
-      case EnsLookupStates.EMPTY:
-        return BlockieState.EMPTY;
-      case EnsLookupStates.ERROR:
-        return BlockieState.ERROR;
-      case EnsLookupStates.FETCHING:
-        return BlockieState.FETCHING;
-      case EnsLookupStates.NO_RESOLVE:
-      case EnsLookupStates.SUCCESS:
-        return BlockieState.SUCCESS;
-    }
-  };
-
   const getProfileContents = (): JSX.Element | undefined => {
     return dappContext.activeAddress ? (
       <figure>
@@ -86,7 +97,9 @@ const WalletConnect: React.FunctionComponent = (): JSX.Element => {
         <FontAwesomeIcon icon={faChevronDown} />
       </figure>
     ) : (
-      <LoaderSpinner type="Pulse" size={20} />
+      <Spinner animation="border" role="status">
+        <span className="visually-hidden">Loading...</span>
+      </Spinner>
     );
   };
 
@@ -131,7 +144,7 @@ const WalletConnect: React.FunctionComponent = (): JSX.Element => {
   );
 
   const addressResolver = useCallback(() => {
-    if (active && account && !dappContext.resolveAddress(account)) {
+    if (active && account && !dappContext.lookupUserAddress(account, true)) {
       fetchAddress({ address: account }, dappContext.ethersProvider)(addUserAddress);
     } else if (active && !account) {
       activateBrowserWallet();

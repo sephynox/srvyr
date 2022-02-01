@@ -2,10 +2,11 @@ import React, { useContext } from "react";
 import { NavLink } from "react-router-dom";
 import { Col, Row } from "react-bootstrap";
 import styled from "styled-components";
+import { useEthers } from "@usedapp/core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import { AppContext } from "../App";
-import { useEthers } from "@usedapp/core";
+import { DappContext } from "../Dapp";
 
 import { ThemeEngine } from "../styles/GlobalStyle";
 import LanguageSelector from "./LanguageSelector";
@@ -14,6 +15,7 @@ import { NavBlock } from "./Navigation";
 import WalletConnect from "./WalletConnect";
 import ToggleTheme from "./ToggleTheme";
 import { NavState } from "./NavToggle";
+import Gastimate from "../components/Gastimate";
 
 type Props = {
   links: NavBlock[];
@@ -22,6 +24,7 @@ type Props = {
 
 const DappNavigation: React.FunctionComponent<Props> = ({ links, navState }): JSX.Element => {
   const appContext = useContext(AppContext);
+  const dappContext = useContext(DappContext);
   const { active } = useEthers();
 
   const buildLink = (link: NavBlock, index: number): JSX.Element => {
@@ -42,6 +45,9 @@ const DappNavigation: React.FunctionComponent<Props> = ({ links, navState }): JS
           <WalletConnect />
           <hr />
           <NavLinksStyle>{links.map((link, i) => buildLink(link, i))}</NavLinksStyle>
+          <GastimateCenterStyle>
+            <Gastimate provider={dappContext.ethersProvider} />
+          </GastimateCenterStyle>
           <hr />
         </>
       ) : (
@@ -67,6 +73,10 @@ const DappNavigation: React.FunctionComponent<Props> = ({ links, navState }): JS
 };
 
 export default DappNavigation;
+
+const GastimateCenterStyle = styled.span`
+  text-align: right;
+`;
 
 const NavLinkStyle = styled(NavLink)`
   display: flex;

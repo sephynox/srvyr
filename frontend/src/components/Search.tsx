@@ -1,11 +1,9 @@
 import React from "react";
 // import styled from "styled-components";
-// import { Image } from "react-bootstrap";
+// import { Image, Spinner } from "react-bootstrap";
 // import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 // import { faExclamationTriangle, faUser } from "@fortawesome/free-solid-svg-icons";
 // import makeBlockie from "ethereum-blockies-base64";
-
-// import LoaderSpinner from "./LoaderSpinner";
 
 // export enum SearchState {
 //   EMPTY,
@@ -31,7 +29,7 @@ import React from "react";
 //         return <BlockieStyle src={makeBlockie(address ?? "")} alt={address} width={size} />;
 //       }
 //     case SearchState.FETCHING:
-//       return <LoaderSpinner type="Circle" size={16} />;
+//       return <Spinner animation="border" size="sm" />
 //     case SearchState.ERROR:
 //       return <FontAwesomeIcon icon={faExclamationTriangle} />;
 //     case SearchState.EMPTY:

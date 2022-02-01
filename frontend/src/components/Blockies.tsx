@@ -1,11 +1,9 @@
 import React from "react";
 import styled from "styled-components";
-import { Image } from "react-bootstrap";
+import { Image, Spinner } from "react-bootstrap";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faExclamationTriangle, faUser } from "@fortawesome/free-solid-svg-icons";
 import makeBlockie from "ethereum-blockies-base64";
-
-import LoaderSpinner from "./LoaderSpinner";
 
 const BLOCKIE_DEFAULT_SIZE = 50;
 
@@ -47,7 +45,7 @@ export const Blockie = ({ state, address, size = BLOCKIE_DEFAULT_SIZE, ens = nul
         return <BlockieStyle src={makeBlockie(address ?? "")} alt={address} width={size} />;
       }
     case BlockieState.FETCHING:
-      return <LoaderSpinner type="Circle" size={16} />;
+      return <Spinner animation="border" />;
     case BlockieState.ERROR:
       return <FontAwesomeIcon icon={faExclamationTriangle} />;
     case BlockieState.EMPTY:

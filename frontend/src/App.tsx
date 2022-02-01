@@ -1,5 +1,8 @@
 import React, { createContext, Dispatch, Suspense, useCallback, useEffect, useReducer, useState } from "react";
+import { Outlet } from "react-router-dom";
+import { HelmetProvider } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
+import { Spinner } from "react-bootstrap";
 import { ThemeProvider } from "styled-components";
 
 import i18next, { i18nNamespace } from "./services/i18n";
@@ -11,10 +14,8 @@ import "./scss/custom.scss";
 import Toaster, { addToast as toast, ToasterTypes } from "./layout/Toaster";
 import { NavState } from "./layout/NavToggle";
 import Overlay, { OverlayState } from "./layout/Overlay";
-import LoaderSpinner from "./components/LoaderSpinner";
 import Theme, { Themes, availableThemes } from "./tools/Themes";
 import BackTop from "./tools/BackTop";
-import { Outlet } from "react-router-dom";
 
 export const AppContext = createContext<{
   testMode: boolean;
@@ -122,16 +123,24 @@ const App: React.FunctionComponent = (): JSX.Element => {
   };
 
   return (
-    <Suspense fallback={<LoaderSpinner type="Pulse" size={20} />}>
-      <ThemeProvider theme={availableThemes[theme]}>
-        <AppContext.Provider value={appContext}>
-          <Outlet />
-          <Overlay state={overlayState as OverlayState} />
-          <BackTop textColor={getTheme(theme).text} backgroundColor={getTheme(theme).background} />
-          <Toaster theme={theme === Themes.LIGHT ? "light" : "dark"} />
-          <GlobalStyle />
-        </AppContext.Provider>
-      </ThemeProvider>
+    <Suspense
+      fallback={
+        <Spinner animation="border" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </Spinner>
+      }
+    >
+      <HelmetProvider>
+        <ThemeProvider theme={availableThemes[theme]}>
+          <AppContext.Provider value={appContext}>
+            <Outlet />
+            <Overlay state={overlayState as OverlayState} />
+            <BackTop textColor={getTheme(theme).text} backgroundColor={getTheme(theme).background} />
+            <Toaster theme={theme === Themes.LIGHT ? "light" : "dark"} />
+            <GlobalStyle />
+          </AppContext.Provider>
+        </ThemeProvider>
+      </HelmetProvider>
     </Suspense>
   );
 };

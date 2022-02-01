@@ -10,8 +10,9 @@ const Discover = (): JSX.Element => {
 
   return (
     <Section>
-      <h1>{title}</h1>
-      <header></header>
+      <header>
+        <h1>{title}</h1>
+      </header>
     </Section>
   );
 };

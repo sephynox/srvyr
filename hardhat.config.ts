@@ -25,17 +25,6 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
   }
 });
 
-const accounts: HardhatNetworkAccountsUserConfig = [
-  {
-    privateKey: process.env.GOVERNOR_PRIVATE_KEY || "",
-    balance: utils.parseEther("2000000").toString(),
-  },
-  {
-    privateKey: process.env.TEST_PRIVATE_KEY || "",
-    balance: utils.parseEther("2000000").toString(),
-  },
-];
-
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
 
@@ -44,12 +33,10 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       chainId: 1337,
-      accounts: accounts,
     },
     ropsten: {
       url: process.env.ROPSTEN_URL || "",
-      accounts:
-        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+      accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
   },
   gasReporter: {

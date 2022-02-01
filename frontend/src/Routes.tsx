@@ -7,12 +7,14 @@ import NotFound from "./routes/NotFound";
 import Discover from "./routes/Discover";
 import Overview from "./routes/Overview";
 
+export const PAGE_OVERVIEW = "overview";
+
 const Routes = (): JSX.Element => (
   <RouterRoutes>
     <Route path="/" element={<App />}>
       <Route element={<Dapp />}>
         <Route index element={<Discover />} />
-        <Route path="overview" element={<Overview />}>
+        <Route path={PAGE_OVERVIEW} element={<Overview />}>
           <Route path=":account" element={<Overview />} />
         </Route>
       </Route>
