@@ -8,7 +8,7 @@ import { ethers } from "ethers";
 //import Web3Modal from "web3modal";
 
 import * as Constants from "./Constants";
-import { ethersConfig, dappNavLinks } from "./Data";
+import { dappNavLinks } from "./Data";
 import { AppContext } from "./App";
 import Header from "./layout/Header";
 import DappNavigation from "./layout/DappNavigation";
@@ -21,6 +21,13 @@ import {
   initiaEnsLookupCache,
   initialEnsLookupState,
 } from "./actions/Ethereum";
+
+declare global {
+  interface Window {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ethereum: any;
+  }
+}
 
 export const DappContext = createContext<{
   ethersProvider: ethers.providers.Provider;
@@ -59,7 +66,9 @@ const Dapp: React.FunctionComponent = (): JSX.Element => {
     JSON.parse(localStorage.getItem("ensLookupCache") ?? JSON.stringify(initiaEnsLookupCache))
   );
   const [ethersProvider, setEthersProvider] = useState<ethers.providers.Provider>(
-    new ethers.providers.InfuraProvider(Constants.DEFAULT_ETHERS_NETWORK, ethersConfig)
+    process.env.NODE_ENV === "production"
+      ? new ethers.providers.InfuraProvider(Constants.DEFAULT_ETHERS_NETWORK, Constants.DAPP_CONFIG)
+      : new ethers.providers.Web3Provider(window.ethereum)
   );
 
   // Safety check
@@ -155,7 +164,11 @@ const Dapp: React.FunctionComponent = (): JSX.Element => {
 
   useEffect(() => {
     localStorage.setItem("userAddresses", JSON.stringify(userAddresses));
-  }, [userAddresses]);
+
+    if (userAddresses.length > 0 && !activeAddress?.data) {
+      setActiveAddress(userAddresses[userAddresses.length - 1]);
+    }
+  }, [userAddresses, activeAddress]);
 
   useEffect(() => {
     localStorage.setItem("activeAddress", JSON.stringify(activeAddress) ?? "{}");
@@ -189,9 +202,5 @@ const MainStyle = styled.main`
   @media (min-width: 993px) {
     padding-left: calc(var(--srvyr-header-width) + 20px);
     padding-right: 30px;
-  }
-
-  @media screen and (max-height: 800px) {
-    margin-bottom: 50px;
   }
 `;

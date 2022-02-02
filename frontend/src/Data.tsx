@@ -72,7 +72,3 @@ export const systemLanguages: Record<string, string> = {
 };
 
 export const supportedLanguages: Array<keyof typeof systemLanguages> = ["en-US", "es", "de"];
-
-export const ethersConfig: Record<string, string> = {
-  infura: process.env.REACT_APP_INFURA_PROJECT_ID ?? "",
-};

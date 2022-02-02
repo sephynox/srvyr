@@ -13,13 +13,13 @@ import Assets from "../components/Assets";
 import { Blockie } from "../components/Blockies";
 import { shortDisplayAddress } from "../utils/data-helpers";
 import Copy from "../components/Copy";
+import { Accordion } from "react-bootstrap";
 
 const Overview = (): JSX.Element => {
   const dappContext = useContext(DappContext);
   const { t } = useTranslation();
   const props = useParams();
   const navigate = useNavigate();
-
   const [addressState, setAddressState] = useState<EnsLookupState>(initialEnsLookupState);
 
   const checkProps = useCallback(() => {
@@ -64,13 +64,29 @@ const Overview = (): JSX.Element => {
                   {shortDisplayAddress(addressState.data?.address)}{" "}
                   <Copy copyText={t("copied")} text={addressState.data?.address ?? ""} />
                 </h3>
+                <em>Active Since: TODO</em>
               </figcaption>
             </figure>
           </SummaryStyle>
         </header>
       </Section>
       <Section>
-        <Assets data={[]} />
+        <Accordion defaultActiveKey="0" flush>
+          <Accordion.Item eventKey="0">
+            <Accordion.Header>
+              <h2>{t("portfolio")}</h2>
+            </Accordion.Header>
+            <Accordion.Body>
+              <Assets data={[]} />
+            </Accordion.Body>
+          </Accordion.Item>
+          <Accordion.Item eventKey="1">
+            <Accordion.Header>
+              <h2>{t("transactions")}</h2>
+            </Accordion.Header>
+            <Accordion.Body></Accordion.Body>
+          </Accordion.Item>
+        </Accordion>
       </Section>
     </>
   );
@@ -91,26 +107,36 @@ const SummaryStyle = styled.article`
   }
 
   & figure figcaption {
-    padding-left: 10px;
+    padding-left: 15px;
     overflow: hidden;
     text-overflow: ellipsis;
 
     & h2 {
-      font-size: 1.4em;
-    }
+      margin-bottom: 0.2em;
 
-    & h2 address {
-      padding: 0;
-      margin: 0;
+      & address {
+        padding: 0;
+        margin: 0;
+      }
     }
 
     & h3 {
-      font-size: 1em;
+      margin-bottom: 1rem;
       color: ${(props: ThemeEngine) => props.theme.textAlt};
+    }
+
+    & em {
+      color: ${(props: ThemeEngine) => props.theme.textSubdued};
     }
 
     & h3 button {
       margin-left: 10px;
+    }
+  }
+
+  @media screen and (max-width: 992px) {
+    & figure {
+      justify-content: center;
     }
   }
 `;

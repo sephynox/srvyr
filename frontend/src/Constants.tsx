@@ -1,4 +1,5 @@
-import { Mainnet, Config, ChainId } from "@usedapp/core";
+import { Mainnet, Config, ChainId, Localhost } from "@usedapp/core";
+//import WalletConnectProvider from "@walletconnect/web3-provider";
 
 export const DEV_MODE = "production" !== process.env.NODE_ENV;
 export const SITE_BASE_URL = window.location.origin;
@@ -12,11 +13,32 @@ export const DEFAULT_ETHERS_NETWORK = "homestead";
 
 export const DAPP_CONFIG: Config = DEV_MODE
   ? {
-      multicallAddresses: {
-        [ChainId.Localhost]: process.env.REACT_APP_MULTICALL_ADDRESS ?? "",
-      },
+      autoConnect: false,
+      networks: [Localhost],
+      readOnlyChainId: Mainnet.chainId,
       readOnlyUrls: {
-        [ChainId.Localhost]: "http://127.0.0.1:8545",
+        [ChainId.Mainnet]: `https://mainnet.infura.io/v3/${process.env.REACT_APP_INFURA_PROJECT_ID}`,
+      },
+      multicallAddresses: {
+        [ChainId.Localhost]: `${process.env.REACT_APP_MULTICALL_ADDRESS}`,
+        [ChainId.Mainnet]: `${process.env.REACT_APP_MAINNET_MULTICALL_ADDRESS}`,
       },
     }
-  : { networks: [Mainnet] };
+  : { autoConnect: false, networks: [Mainnet] };
+
+// export const WC_CONFIG = {
+//   injected: {
+//     display: {
+//       name: "Metamask",
+//       description: "Connect with the provider in your Browser",
+//     },
+//     package: null,
+//   },
+//   walletconnect: {
+//     package: WalletConnectProvider,
+//     options: {
+//       bridge: "https://bridge.walletconnect.org",
+//       infuraId: `${process.env.REACT_APP_INFURA_PROJECT_ID}`,
+//     },
+//   },
+// };

@@ -11,16 +11,16 @@ export const GlobalStyle = createGlobalStyle`
 $font-size-base: 1rem;
 
 ::-webkit-scrollbar {
-    background-color: ${(props: ThemeEngine) => props.theme.background};
+  background-color: ${(props: ThemeEngine) => props.theme.background};
 }
 
 ::-webkit-scrollbar-track {
-    background-color: ${(props: ThemeEngine) => props.theme.background};
+  background-color: ${(props: ThemeEngine) => props.theme.background};
 }
 
 ::-webkit-scrollbar-thumb {
-    background-color: ${(props: ThemeEngine) => props.theme.background};
-    outline: 1px solid ${(props: ThemeEngine) => props.theme.backgroundDelta};
+  background-color: ${(props: ThemeEngine) => props.theme.background};
+  outline: 1px solid ${(props: ThemeEngine) => props.theme.backgroundDelta};
 }
 
 :root {
@@ -139,20 +139,36 @@ $font-size-base: 1rem;
 
 html,
 body {
-    height: 100vh;
-    margin: 0;
-    padding: 0;
-    overflow-y: auto;
-    flex-direction: column; 
-    background-color: ${(props: ThemeEngine) => props.theme.background};
-    color: ${(props: ThemeEngine) => props.theme.text};
-    transition: all 0.25s linear;
-    font-size: 1em;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
-        "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
-        sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  flex-direction: column; 
+  background-color: ${(props: ThemeEngine) => props.theme.background};
+  color: ${(props: ThemeEngine) => props.theme.text};
+  transition: all 0.25s linear;
+  font-size: 1em;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+      "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+      sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1 {
+  font-size: 1.5em;
+}
+
+h2 {
+  font-size: 1.3em;
+}
+
+h3 {
+  font-size: 1.2em;
+}
+
+h4 {
+  font-size: 1em;
 }
 
 #root {
@@ -162,18 +178,39 @@ body {
 }
 
 a {
-    color: ${(props: ThemeEngine) => props.theme.link};
-    text-decoration: none;
+  color: ${(props: ThemeEngine) => props.theme.link};
+  text-decoration: none;
 }
 
 a:hover {
-    color: ${(props: ThemeEngine) => props.theme.linkHover};
-    text-decoration: none;
+  color: ${(props: ThemeEngine) => props.theme.linkHover};
+  text-decoration: none;
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
     monospace;
+}
+
+.accordion, .accordion-item, .accordion-header {
+  color: ${(props: ThemeEngine) => props.theme.text};
+  background-color: ${(props: ThemeEngine) => props.theme.background};
+}
+
+.accordion-header {
+  & h1, h2, h3, h4, h5, h6 {
+    margin: 0;
+  }
+}
+
+.accordion-button:not(.collapsed) {
+  color: ${(props: ThemeEngine) => props.theme.text};
+  background-color: ${(props: ThemeEngine) => props.theme.backgroundMenu};
+}
+
+.accordion-button.collapsed {
+  color: ${(props: ThemeEngine) => props.theme.textAlt};
+  background-color: ${(props: ThemeEngine) => props.theme.backgroundMenu};
 }
 
 .dropdown-menu {

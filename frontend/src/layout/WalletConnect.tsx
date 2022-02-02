@@ -12,6 +12,7 @@ import { AppContext } from "../App";
 import { DappContext } from "../Dapp";
 import { ToasterTypes } from "./Toaster";
 import { Blockie, BlockieState } from "../components/Blockies";
+import Copy from "../components/Copy";
 import { shortDisplayAddress } from "../utils/data-helpers";
 
 enum WalletMenuStates {
@@ -48,8 +49,8 @@ export const getBlockieState = (state: EnsLookupStates) => {
 const WalletConnect: React.FunctionComponent = (): JSX.Element => {
   const appContext = useContext(AppContext);
   const dappContext = useContext(DappContext);
-  const { activateBrowserWallet, account, error, active, deactivate } = useEthers();
   const { t } = useTranslation();
+  const { activateBrowserWallet, account, error, active, deactivate } = useEthers();
 
   const isActive = useRef(true);
   const [walletButtonState, setWalletButtonState] = useState<WalletMenuStates>(WalletMenuStates.CLOSED);
@@ -57,6 +58,10 @@ const WalletConnect: React.FunctionComponent = (): JSX.Element => {
   if (error) {
     appContext.toast(error.message, ToasterTypes.ERROR);
   }
+
+  const activateConnection = async () => {
+    activateBrowserWallet();
+  };
 
   const deactivateConnection = () => {
     dappContext.setActiveAddress(undefined);
@@ -106,15 +111,16 @@ const WalletConnect: React.FunctionComponent = (): JSX.Element => {
   const getAllAccounts = (): JSX.Element[] => {
     return dappContext.userAddresses.map((lookup) =>
       lookup.data ? (
-        <button key={lookup.data.address} onClick={() => setAddressCloseMenu(lookup)}>
-          <figure>
+        <figure key={lookup.data.address}>
+          <button onClick={() => setAddressCloseMenu(lookup)}>
             <BlockieStyle state={getBlockieState(lookup.type)} address={lookup.data.address} size={48} />{" "}
             <figcaption>
               {shortDisplayAddress(lookup.data.address)}
               {lookup.data.ens && <address>{lookup.data.ens}</address>}
             </figcaption>
-          </figure>
-        </button>
+          </button>
+          <Copy copyText={t("copied")} text={lookup.data.address ?? ""} />
+        </figure>
       ) : (
         <></>
       )
@@ -122,34 +128,41 @@ const WalletConnect: React.FunctionComponent = (): JSX.Element => {
   };
 
   const getDisconnect = (): JSX.Element => (
-    <button onClick={() => deactivateConnection()}>
-      <figure>
+    <figure>
+      <button onClick={() => deactivateConnection()}>
         <FontAwesomeIcon icon={faTimes} />
         <figcaption>{t("disconnect")}</figcaption>
-      </figure>
-    </button>
+      </button>
+    </figure>
   );
 
   const addUserAddress = useCallback(
     (state: EnsLookupState) => {
-      if (state.type === EnsLookupStates.SUCCESS || state.type === EnsLookupStates.NO_RESOLVE) {
-        dappContext.setUserAddresses(Array.from(new Set([state, ...dappContext.userAddresses])));
-        appContext.toast(
-          `${t("notification.account_added")}${shortDisplayAddress(state.data?.address)}`,
-          ToasterTypes.SUCCESS
-        );
+      switch (state.type) {
+        case EnsLookupStates.SUCCESS:
+        case EnsLookupStates.NO_RESOLVE:
+          dappContext.setUserAddresses(Array.from(new Set([state, ...dappContext.userAddresses])));
+          appContext.toast(
+            `${t("notification.account_added")}${shortDisplayAddress(state.data?.address)}`,
+            ToasterTypes.SUCCESS
+          );
+          break;
+        case EnsLookupStates.ERROR:
+          appContext.toast(`${t("error")} ${state.error}`, ToasterTypes.ERROR);
+          break;
       }
     },
     [dappContext, appContext, t]
   );
 
   const addressResolver = useCallback(() => {
-    if (active && account && !dappContext.lookupUserAddress(account, true)) {
+    if (active && account && dappContext.lookupUserAddress(account, true) === undefined) {
       fetchAddress({ address: account }, dappContext.ethersProvider)(addUserAddress);
-    } else if (active && !account) {
-      activateBrowserWallet();
     }
-  }, [active, account, addUserAddress, activateBrowserWallet, dappContext]);
+    //  else if (active && !account) {
+    //   activateConnection();
+    // }
+  }, [active, account, addUserAddress, dappContext]);
 
   useEffect(() => {
     addressResolver();
@@ -161,7 +174,7 @@ const WalletConnect: React.FunctionComponent = (): JSX.Element => {
     };
   }, [dappContext, isActive]);
 
-  return active ? (
+  return active && !!dappContext.activeAddress?.data ? (
     <AccountControlStyle>
       <button onClick={toggleWalletButtonState}>{getProfileContents()}</button>
       <AccountMenuStyle state={walletButtonState}>
@@ -174,10 +187,8 @@ const WalletConnect: React.FunctionComponent = (): JSX.Element => {
   ) : (
     <article>
       <h1>{t("welcome")}</h1>
-      <section>
-        <p>{t("content.connect")}</p>
-        <Button onClick={() => activateBrowserWallet()}>{t("connect")}</Button>
-      </section>
+      <p>{t("content.connect")}</p>
+      <Button onClick={() => activateConnection()}>{t("connect")}</Button>
     </article>
   );
 };
@@ -203,12 +214,35 @@ const AccountMenuStyle = styled.aside`
 
   & figure {
     padding: 10px 10px 10px 20px;
+    display: flex;
+    flex-direction: row;
+
+    & button {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      width: auto;
+    }
+
+    & button:first-child {
+      flex-grow: 2;
+    }
+
+    & button:last-child svg {
+      margin-right: 10px;
+    }
   }
 
   & em {
     display: block;
     padding-left: 20px;
     padding-bottom: 10px;
+  }
+
+  & figure figcaption,
+  svg {
+    margin-left: 10px;
+    flex-grow: 1;
   }
 
   @media (min-width: 993px) {

@@ -1,6 +1,5 @@
 import React, { useContext } from "react";
 import { NavLink } from "react-router-dom";
-import { Col, Row } from "react-bootstrap";
 import styled from "styled-components";
 import { useEthers } from "@usedapp/core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -39,8 +38,11 @@ const DappNavigation: React.FunctionComponent<Props> = ({ links, navState }): JS
 
   return (
     <NavStyle navState={navState}>
-      <Logo mode={appContext.theme} />
-      {active ? (
+      <section>
+        <Logo mode={appContext.theme} />
+        <ToggleTheme theme={appContext.theme} setTheme={appContext.setTheme} />
+      </section>
+      {active && !!dappContext.activeAddress?.data ? (
         <>
           <WalletConnect />
           <hr />
@@ -57,17 +59,10 @@ const DappNavigation: React.FunctionComponent<Props> = ({ links, navState }): JS
           <ul></ul>
         </>
       )}
-      <Row>
-        <Col>
-          <LanguageSelector language={appContext.language} setLanguage={appContext.setLanguage} />
-        </Col>
-        <Col>
-          <ToggleTheme theme={appContext.theme} setTheme={appContext.setTheme} />
-        </Col>
-        <Col>
-          <em>v{process.env.REACT_APP_BUILD_VERSION}</em>
-        </Col>
-      </Row>
+      <section>
+        <LanguageSelector language={appContext.language} setLanguage={appContext.setLanguage} />
+        <em>v{process.env.REACT_APP_BUILD_VERSION}</em>
+      </section>
     </NavStyle>
   );
 };
@@ -125,9 +120,19 @@ const NavStyle = styled.nav`
   border-color: ${(props: ThemeEngine) => props.theme.backgroundSecondary};
   background-color: ${(props: ThemeEngine) => props.theme.backgroundMenu};
 
+  & section {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  & section:first-child {
+    padding-bottom: 20px;
+  }
+
   & #logo {
     width: 90px;
-    padding-bottom: 20px;
   }
 
   & ul {

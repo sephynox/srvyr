@@ -134,7 +134,14 @@ export const fetchAddress =
 
         dispatch(state);
       },
-      (error) => dispatch({ type: EnsLookupStates.ERROR, error: error.message })
+      (error) => {
+        // Testing
+        if (error.message.search("network does not support ENS") !== -1) {
+          dispatch({ type: EnsLookupStates.NO_RESOLVE, data: lookup });
+        } else {
+          dispatch({ type: EnsLookupStates.ERROR, error: error.message });
+        }
+      }
     );
   };
 

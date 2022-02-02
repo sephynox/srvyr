@@ -33,9 +33,13 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       chainId: 1337,
+      forking: {
+        enabled: true,
+        url: `${process.env.INFURA_URL}`,
+      },
     },
     ropsten: {
-      url: process.env.ROPSTEN_URL || "",
+      url: `${process.env.ROPSTEN_URL}`,
       accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
   },

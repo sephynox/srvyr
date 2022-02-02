@@ -25,6 +25,7 @@ export type Theme = {
   hr: string;
   text: string;
   textAlt: string;
+  textSubdued: string;
   textIcon: string;
   info: string;
   infoText: string;
@@ -55,6 +56,7 @@ export const lightTheme: Theme = {
   hr: "rgb(96, 96, 96)",
   text: "#000",
   textAlt: "#1a487d",
+  textSubdued: "#a5a5a5",
   textIcon: "#000",
   info: "rgb(6, 125, 237)",
   infoText: "rgb(6, 125, 237)",
@@ -87,8 +89,9 @@ export const darkTheme: Theme = {
   hr: "rgb(81, 83, 84)",
   text: "#fff",
   textAlt: "#af947e",
+  textSubdued: "#a5a5a5",
   textIcon: "#9fa1a3",
-  infoText: "#81b6f0",
+  infoText: "#8a9ed3",
   info: "rgb(6, 125, 237)",
   infoBorder: "rgb(6, 125, 237)",
   warn: "rgba(168, 141, 12, 0.3)",
