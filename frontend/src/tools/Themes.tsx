@@ -48,7 +48,7 @@ export const lightTheme: Theme = {
   background: "rgb(255, 255, 255)",
   backgroundSecondary: "rgb(200 200 200)",
   backgroundSecondaryActive: "rgb(229 229 229)",
-  backgroundMenu: "rgb(255 255 255)",
+  backgroundMenu: "rgb(247 251 255)",
   backgroundIcon: "rgb(255, 255, 255)",
   backgroundDelta: "rgba(0, 0, 0, .1)",
   link: "rgb(6, 125, 237)",

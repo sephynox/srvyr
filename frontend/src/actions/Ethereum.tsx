@@ -1,24 +1,29 @@
 import { ethers } from "ethers";
 import { Dispatch } from "react";
 
+import {
+  Networks,
+  NSLookupCache,
+  NSLookupData,
+  nsLookupErrors,
+  NSLookupState,
+  NSLookupStates,
+  TokenLookupErrors,
+  TokenLookupState,
+  TokenLookupStates,
+} from "./Network";
+
 export const REGEX_ETHEREUM_ADDRESS = "/^0x[a-fA-F0-9]{40}$/";
 export const ETHER_ADDRESS = "0x0000000000000000000000000000000000000000";
 
-export enum EnsLookupErrors {
-  NO_ENS_SET = "No ENS set for address.",
-  NO_DATA = "No lookup data provided",
+export enum EthereumTokenStandards {
+  ERC20 = "ERC20",
+  ERC721 = "ERC721",
+  ERC1155 = "ERC1155",
 }
 
 export enum GasePriceErrors {
   FAILED = "Call to retrieve price information failed.",
-}
-
-export enum EnsLookupStates {
-  EMPTY,
-  FETCHING,
-  ERROR,
-  NO_RESOLVE,
-  SUCCESS,
 }
 
 export enum GasPriceStates {
@@ -30,54 +35,14 @@ export enum GasPriceStates {
 
 export type EtherUnits = "wei" | "kwei" | "mwei" | "gwei" | "szabo" | "finney" | "ether";
 
-export type EnsLookupData = {
-  ens?: string | null | undefined;
-  address?: string | null | undefined;
-};
-
-export type EnsLookupCache = {
-  forward: Record<string, EnsLookupState>;
-  reverse: Record<string, EnsLookupState>;
-};
-
-export type EnsLookupState =
-  | { type: typeof EnsLookupStates.EMPTY; data?: EnsLookupData }
-  | { type: typeof EnsLookupStates.FETCHING; data?: EnsLookupData }
-  | { type: typeof EnsLookupStates.ERROR; data?: EnsLookupData; error: EnsLookupErrors }
-  | { type: typeof EnsLookupStates.NO_RESOLVE; data: EnsLookupData }
-  | { type: typeof EnsLookupStates.SUCCESS; data: EnsLookupData };
-
 export type GasPriceState =
   | { type: typeof GasPriceStates.EMPTY; data?: string }
   | { type: typeof GasPriceStates.FETCHING; data?: string }
   | { type: typeof GasPriceStates.ERROR; data?: undefined; error: GasePriceErrors }
   | { type: typeof GasPriceStates.SUCCESS; data: string };
 
-export const initialEnsLookupState: EnsLookupState = {
-  type: EnsLookupStates.EMPTY,
-};
-
 export const initiaGasPriceState: GasPriceState = {
   type: GasPriceStates.EMPTY,
-};
-
-export const initiaEnsLookupCache: EnsLookupCache = {
-  forward: {},
-  reverse: {},
-};
-
-export const ensLookupReducer = (state: EnsLookupState, action: EnsLookupState): EnsLookupState => {
-  switch (action.type) {
-    case EnsLookupStates.FETCHING:
-      return { ...state, type: action.type };
-    case EnsLookupStates.NO_RESOLVE:
-    case EnsLookupStates.SUCCESS:
-      return { ...state, type: action.type, data: action.data };
-    case EnsLookupStates.ERROR:
-      return { ...state, type: action.type, error: action.error };
-    default:
-      return { ...initialEnsLookupState, ...state };
-  }
 };
 
 export const gasePriceReducer = (state: GasPriceState, action: GasPriceState): GasPriceState => {
@@ -94,9 +59,9 @@ export const gasePriceReducer = (state: GasPriceState, action: GasPriceState): G
 };
 
 export const fetchAddress =
-  (lookup: EnsLookupData, provider: ethers.providers.Provider, cache?: EnsLookupCache) =>
-  async (dispatch: Dispatch<EnsLookupState>): Promise<void> => {
-    dispatch({ type: EnsLookupStates.FETCHING });
+  (lookup: NSLookupData, provider: ethers.providers.Provider, cache?: NSLookupCache) =>
+  async (dispatch: Dispatch<NSLookupState>): Promise<void> => {
+    dispatch({ type: NSLookupStates.FETCHING });
 
     let promise: Promise<string | null>;
     let check: number;
@@ -105,31 +70,35 @@ export const fetchAddress =
       check = 1;
 
       if (!!cache && !!cache.forward[lookup.address]) {
-        promise = Promise.resolve(cache.forward[lookup.address].data?.ens ?? null);
+        promise = Promise.resolve(cache.forward[lookup.address].ns ?? null);
       } else {
         promise = provider.lookupAddress(lookup.address);
       }
-    } else if (!!lookup.ens) {
+    } else if (!!lookup.ns) {
       check = 2;
 
-      if (!!cache && !!cache.reverse[lookup.ens]) {
-        promise = Promise.resolve(cache.forward[lookup.ens].data?.address ?? null);
+      if (!!cache && !!cache.reverse[lookup.ns]) {
+        promise = Promise.resolve(cache.forward[lookup.ns].address ?? null);
       } else {
-        promise = provider.resolveName(lookup.ens);
+        promise = provider.resolveName(lookup.ns);
       }
     } else {
-      promise = Promise.reject({ message: EnsLookupErrors.NO_DATA });
+      promise = Promise.reject({ message: nsLookupErrors.NO_DATA });
     }
 
     return promise.then(
       (result) => {
-        let state: EnsLookupState;
+        let state: NSLookupState;
 
         if (!result) {
-          state = { type: EnsLookupStates.NO_RESOLVE, data: lookup };
+          state = { type: NSLookupStates.NO_RESOLVE, data: lookup };
         } else {
-          const compile = { address: check === 2 ? result : lookup.address, ens: check === 1 ? result : lookup.ens };
-          state = { type: EnsLookupStates.SUCCESS, data: compile };
+          const compile = {
+            network: Networks.ETHEREUM,
+            address: check === 2 ? result : lookup.address,
+            ens: check === 1 ? result : lookup.ns,
+          };
+          state = { type: NSLookupStates.SUCCESS, data: compile };
         }
 
         dispatch(state);
@@ -137,9 +106,9 @@ export const fetchAddress =
       (error) => {
         // Testing
         if (error.message.search("network does not support ENS") !== -1) {
-          dispatch({ type: EnsLookupStates.NO_RESOLVE, data: lookup });
+          dispatch({ type: NSLookupStates.NO_RESOLVE, data: lookup });
         } else {
-          dispatch({ type: EnsLookupStates.ERROR, error: error.message });
+          dispatch({ type: NSLookupStates.ERROR, error: error.message });
         }
       }
     );
@@ -161,3 +130,30 @@ export const fetchGasPrice =
       (error) => dispatch({ type: GasPriceStates.ERROR, error: error.message })
     );
   };
+
+export const fetchTokens =
+  (type: string) =>
+  async (dispatch: Dispatch<TokenLookupState>): Promise<void> => {
+    dispatch({ type: TokenLookupStates.FETCHING });
+
+    fetch(`data/${type}.json`)
+      .then((response) => response.json())
+      .then(
+        (result) => {
+          if (!result) {
+            dispatch({ type: TokenLookupStates.ERROR, error: TokenLookupErrors.FAILED });
+          } else {
+            dispatch({ type: TokenLookupStates.SUCCESS, data: result });
+          }
+        },
+        (error) => {
+          dispatch({ type: TokenLookupStates.ERROR, error: error.message });
+        }
+      );
+  };
+
+// export const fetchBalances =
+//   (type: string) =>
+//   async (dispatch: Dispatch<TokenLookupState>): Promise<void> => {
+//     dispatch({ type: TokenLookupStates.FETCHING });
+//   };

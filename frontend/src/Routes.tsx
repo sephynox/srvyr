@@ -6,8 +6,10 @@ import Dapp from "./Dapp";
 import NotFound from "./routes/NotFound";
 import Discover from "./routes/Discover";
 import Overview from "./routes/Overview";
+import About from "./routes/About";
 
 export const PAGE_OVERVIEW = "overview";
+export const PAGE_ABOUT = "about";
 
 const Routes = (): JSX.Element => (
   <RouterRoutes>
@@ -17,6 +19,7 @@ const Routes = (): JSX.Element => (
         <Route path={PAGE_OVERVIEW} element={<Overview />}>
           <Route path=":account" element={<Overview />} />
         </Route>
+        <Route path={PAGE_ABOUT} element={<About />}></Route>
       </Route>
       <Route path="*" element={NotFound} />
     </Route>

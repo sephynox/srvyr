@@ -10,7 +10,13 @@ const Footer: React.FunctionComponent = (): JSX.Element => {
 
   return (
     <FooterStyle id="footer">
-      {t("copyright")} <strong>{Constants.SITE_NAME}</strong>.
+      {t("copyright")}{" "}
+      <strong>
+        <a href={Constants.SITE_REPOSITORY} target="_blank" rel="noreferrer">
+          {Constants.SITE_NAME}
+        </a>
+      </strong>
+      .
     </FooterStyle>
   );
 };

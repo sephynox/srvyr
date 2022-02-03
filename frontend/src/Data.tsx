@@ -1,15 +1,14 @@
-import { t } from "i18next";
-import { faHome, faArchway } from "@fortawesome/free-solid-svg-icons";
-
-import { NavBlock } from "./layout/Navigation";
-import { SocialBlock } from "./components/SocialLinks";
+import { faHome, faArchway, faAddressCard } from "@fortawesome/free-solid-svg-icons";
 
 import Home from "./routes/Home";
 import Overview from "./routes/Overview";
+import About from "./routes/About";
+import { NavBlock } from "./layout/Navigation";
+import { SocialBlock } from "./components/SocialLinks";
 
 export const navLinks: Array<NavBlock> = [
   {
-    text: t("home"),
+    text: "home",
     icon: faHome,
     to: "/",
     exact: true,
@@ -19,11 +18,18 @@ export const navLinks: Array<NavBlock> = [
 
 export const dappNavLinks: Array<NavBlock> = [
   {
-    text: t("overview"),
+    text: "overview",
     icon: faArchway,
     to: "overview",
     exact: true,
     component: Overview,
+  },
+  {
+    text: "about",
+    icon: faAddressCard,
+    to: "about",
+    exact: true,
+    component: About,
   },
 ];
 

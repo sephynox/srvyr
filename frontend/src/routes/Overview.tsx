@@ -2,38 +2,54 @@ import React, { useCallback, useContext, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
+import { Accordion } from "react-bootstrap";
 import styled from "styled-components";
 
 import { ThemeEngine } from "../styles/GlobalStyle";
 import { Section } from "../styles/Section";
-import { DappContext } from "../Dapp";
-import { EnsLookupState, initialEnsLookupState } from "../actions/Ethereum";
-import { getBlockieState } from "../layout/WalletConnect";
+import { DappContext, getBlockieState } from "../Dapp";
+import { initialNSLookupState, NSLookupState } from "../actions/Network";
 import Assets from "../components/Assets";
 import { Blockie } from "../components/Blockies";
-import { shortDisplayAddress } from "../utils/data-helpers";
 import Copy from "../components/Copy";
-import { Accordion } from "react-bootstrap";
+import { shortDisplayAddress } from "../utils/data-helpers";
+
+//import { BalanceCheckerContext } from "./../hardhat/SymfoniContext";
 
 const Overview = (): JSX.Element => {
   const dappContext = useContext(DappContext);
+  //const balanceChecker = useContext(BalanceCheckerContext);
   const { t } = useTranslation();
   const props = useParams();
   const navigate = useNavigate();
-  const [addressState, setAddressState] = useState<EnsLookupState>(initialEnsLookupState);
+
+  const [addressState, setAddressState] = useState<NSLookupState>(initialNSLookupState);
 
   const checkProps = useCallback(() => {
     if (!props.account) {
-      if (!!dappContext.activeAddress && !!dappContext.activeAddress.data) {
-        navigate(`${dappContext.activeAddress.data.address}`, { replace: true });
+      if (dappContext.state.activeAddress && dappContext.state.activeAddress.data) {
+        navigate(`${dappContext.state.activeAddress.data.address}`, { replace: true });
       }
     } else {
       dappContext.resolveAddress(props.account)(setAddressState);
     }
   }, [props.account, dappContext, navigate]);
 
+  // const checkEtherBalances = useCallback(() => {
+  //   if (balanceChecker.instance && addressState.data && addressState.data.address) {
+  //     balanceChecker.instance.tokenBalances([addressState.data.address]);
+  //   }
+  // }, [addressState, balanceChecker]);
+
+  // const checkBalances = useCallback(() => {
+  //   // if ether address
+  //   checkEtherBalances();
+  //   // checkCardanoBalances(); etc.
+  // }, [checkEtherBalances]);
+
   useEffect(() => {
     checkProps();
+    //checkBalances();
   }, [checkProps]);
 
   return (
@@ -49,15 +65,13 @@ const Overview = (): JSX.Element => {
           <h1>{t("overview")}</h1>
           <SummaryStyle>
             <figure>
-              <BlockieStyle
-                state={getBlockieState(addressState.type)}
-                address={addressState.data?.address ?? ""}
-                size={100}
-              />{" "}
+              <BlockieStyle size={100}>
+                <Blockie state={getBlockieState(addressState.type)} address={addressState.data?.address ?? ""} />
+              </BlockieStyle>{" "}
               <figcaption>
                 <h2>
                   <address>
-                    {addressState.data?.ens ? addressState.data.ens : shortDisplayAddress(addressState.data?.address)}
+                    {addressState.data?.ns ? addressState.data.ns : shortDisplayAddress(addressState.data?.address)}
                   </address>
                 </h2>
                 <h3>
@@ -94,10 +108,12 @@ const Overview = (): JSX.Element => {
 
 export default Overview;
 
-const BlockieStyle = styled(Blockie)`
-  top: 0;
-  left: 0;
-  display: inline;
+const BlockieStyle = styled.span`
+  & img {
+    width: ${(props: { size: number }) => (props.size ? `${props.size}px` : "100%")} !important;
+    height: ${(props: { size: number }) => (props.size ? `${props.size}px` : "100%")} !important;
+    border-radius: 10%;
+  }
 `;
 
 const SummaryStyle = styled.article`

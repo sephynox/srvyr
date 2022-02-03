@@ -1,5 +1,7 @@
 import styled from "styled-components";
 
+import { ThemeEngine } from "./GlobalStyle";
+
 export const Section = styled.section`
   width: 100%;
   background-size: cover;
@@ -35,17 +37,31 @@ export const Section = styled.section`
     left: 40px;
   }
 
-  @media screen and (max-width: 768px) {
+  @media screen and (max-width: 992px) {
     & h1 {
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 997;
+
+      padding-top: 15px;
+      padding-bottom: 15px;
+      margin-bottom: 0;
+      border-bottom: 1px solid;
+
+      position: fixed;
       text-align: center;
+
+      background-color: ${(props: ThemeEngine) => props.theme.backgroundMenu};
+      border-color: ${(props: ThemeEngine) => props.theme.backgroundSecondary};
     }
 
     & h1::before {
-      left: calc(50% - 60px);
+      height: 0;
     }
 
     & h1::after {
-      left: calc(50% - 20px);
+      height: 0;
     }
 
     & em {

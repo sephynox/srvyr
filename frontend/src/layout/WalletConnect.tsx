@@ -6,14 +6,19 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronDown, faTimes } from "@fortawesome/free-solid-svg-icons";
 import { useEthers } from "@usedapp/core";
 
-import { EnsLookupState, EnsLookupStates, fetchAddress } from "../actions/Ethereum";
 import { ThemeEngine } from "../styles/GlobalStyle";
 import { AppContext } from "../App";
-import { DappContext } from "../Dapp";
+import { DappAction, DappContext, getBlockieState } from "../Dapp";
 import { ToasterTypes } from "./Toaster";
-import { Blockie, BlockieState } from "../components/Blockies";
+import { Networks, NSLookupState, NSLookupStates } from "../actions/Network";
+import { fetchAddress } from "../actions/Ethereum";
+import { Blockie } from "../components/Blockies";
 import Copy from "../components/Copy";
 import { shortDisplayAddress } from "../utils/data-helpers";
+
+type Props = {
+  primary?: boolean;
+};
 
 enum WalletMenuStates {
   OPENED,
@@ -31,22 +36,7 @@ export const CenterWalletConnectStyle = styled.section`
   }
 `;
 
-// TODO Find a better place for this
-export const getBlockieState = (state: EnsLookupStates) => {
-  switch (state) {
-    case EnsLookupStates.EMPTY:
-      return BlockieState.EMPTY;
-    case EnsLookupStates.ERROR:
-      return BlockieState.ERROR;
-    case EnsLookupStates.FETCHING:
-      return BlockieState.FETCHING;
-    case EnsLookupStates.NO_RESOLVE:
-    case EnsLookupStates.SUCCESS:
-      return BlockieState.SUCCESS;
-  }
-};
-
-const WalletConnect: React.FunctionComponent = (): JSX.Element => {
+const WalletConnect: React.FunctionComponent<Props> = ({ primary = false }): JSX.Element => {
   const appContext = useContext(AppContext);
   const dappContext = useContext(DappContext);
   const { t } = useTranslation();
@@ -64,19 +54,13 @@ const WalletConnect: React.FunctionComponent = (): JSX.Element => {
   };
 
   const deactivateConnection = () => {
-    dappContext.setActiveAddress(undefined);
-    dappContext.setUserAddresses([]);
+    dappContext.dispatch({ type: DappAction.DISCONNECT });
     deactivate();
-    appContext.toast(t("disconnected"), ToasterTypes.ERROR);
   };
 
-  const setAddressCloseMenu = (lookup: EnsLookupState) => {
-    dappContext.setActiveAddress(lookup);
+  const setAddressCloseMenu = (lookup: NSLookupState) => {
+    dappContext.dispatch({ type: DappAction.SET_ACTIVE_ADDRESS, address: lookup });
     setWalletButtonState(WalletMenuStates.CLOSED);
-    appContext.toast(
-      `${t("notification.account_switched")}${shortDisplayAddress(lookup.data?.address)}`,
-      ToasterTypes.SUCCESS
-    );
   };
 
   const toggleWalletButtonState = () => {
@@ -88,16 +72,17 @@ const WalletConnect: React.FunctionComponent = (): JSX.Element => {
   };
 
   const getProfileContents = (): JSX.Element | undefined => {
-    return dappContext.activeAddress ? (
+    return dappContext.state.activeAddress ? (
       <figure>
-        <BlockieStyle
-          state={getBlockieState(dappContext.activeAddress.type)}
-          address={dappContext.activeAddress.data?.address ?? ""}
-          size={48}
-        />{" "}
+        <BlockieStyle size={48}>
+          <Blockie
+            state={getBlockieState(dappContext.state.activeAddress.type)}
+            address={dappContext.state.activeAddress.data?.address ?? ""}
+          />
+        </BlockieStyle>{" "}
         <figcaption>
-          <span>{shortDisplayAddress(dappContext.activeAddress.data?.address)}</span>
-          {dappContext.activeAddress.data?.ens && <address>{dappContext.activeAddress.data.ens}</address>}
+          <span>{shortDisplayAddress(dappContext.state.activeAddress.data?.address)}</span>
+          {dappContext.state.activeAddress.data?.ns && <address>{dappContext.state.activeAddress.data.ns}</address>}
         </figcaption>
         <FontAwesomeIcon icon={faChevronDown} />
       </figure>
@@ -109,14 +94,16 @@ const WalletConnect: React.FunctionComponent = (): JSX.Element => {
   };
 
   const getAllAccounts = (): JSX.Element[] => {
-    return dappContext.userAddresses.map((lookup) =>
+    return dappContext.state.userAddresses.map((lookup) =>
       lookup.data ? (
         <figure key={lookup.data.address}>
           <button onClick={() => setAddressCloseMenu(lookup)}>
-            <BlockieStyle state={getBlockieState(lookup.type)} address={lookup.data.address} size={48} />{" "}
+            <BlockieStyle size={48}>
+              <Blockie state={getBlockieState(lookup.type)} address={lookup.data.address ?? ""} />
+            </BlockieStyle>{" "}
             <figcaption>
               {shortDisplayAddress(lookup.data.address)}
-              {lookup.data.ens && <address>{lookup.data.ens}</address>}
+              {lookup.data.ns && <address>{lookup.data.ns}</address>}
             </figcaption>
           </button>
           <Copy copyText={t("copied")} text={lookup.data.address ?? ""} />
@@ -137,31 +124,28 @@ const WalletConnect: React.FunctionComponent = (): JSX.Element => {
   );
 
   const addUserAddress = useCallback(
-    (state: EnsLookupState) => {
+    (state: NSLookupState) => {
       switch (state.type) {
-        case EnsLookupStates.SUCCESS:
-        case EnsLookupStates.NO_RESOLVE:
-          dappContext.setUserAddresses(Array.from(new Set([state, ...dappContext.userAddresses])));
-          appContext.toast(
-            `${t("notification.account_added")}${shortDisplayAddress(state.data?.address)}`,
-            ToasterTypes.SUCCESS
-          );
+        case NSLookupStates.SUCCESS:
+        case NSLookupStates.NO_RESOLVE:
+          dappContext.dispatch({ type: DappAction.ADD_USER_ADDRESS, address: state });
           break;
-        case EnsLookupStates.ERROR:
-          appContext.toast(`${t("error")} ${state.error}`, ToasterTypes.ERROR);
+        case NSLookupStates.ERROR:
+          dappContext.dispatch({
+            type: DappAction.TOAST,
+            toast: ToasterTypes.ERROR,
+            message: `${t("error")} ${state.error}`,
+          });
           break;
       }
     },
-    [dappContext, appContext, t]
+    [dappContext, t]
   );
 
   const addressResolver = useCallback(() => {
     if (active && account && dappContext.lookupUserAddress(account, true) === undefined) {
-      fetchAddress({ address: account }, dappContext.ethersProvider)(addUserAddress);
+      fetchAddress({ network: Networks.ETHEREUM, address: account }, dappContext.ethersProvider)(addUserAddress);
     }
-    //  else if (active && !account) {
-    //   activateConnection();
-    // }
   }, [active, account, addUserAddress, dappContext]);
 
   useEffect(() => {
@@ -174,31 +158,45 @@ const WalletConnect: React.FunctionComponent = (): JSX.Element => {
     };
   }, [dappContext, isActive]);
 
-  return active && !!dappContext.activeAddress?.data ? (
-    <AccountControlStyle>
-      <button onClick={toggleWalletButtonState}>{getProfileContents()}</button>
-      <AccountMenuStyle state={walletButtonState}>
-        <em>{t("accounts")}</em>
-        {getAllAccounts()}
-        <hr />
-        {getDisconnect()}
-      </AccountMenuStyle>
-    </AccountControlStyle>
-  ) : (
-    <article>
-      <h1>{t("welcome")}</h1>
-      <p>{t("content.connect")}</p>
-      <Button onClick={() => activateConnection()}>{t("connect")}</Button>
-    </article>
-  );
+  switch (dappContext.state.activeAddress.type) {
+    case NSLookupStates.EMPTY:
+      return (
+        <article>
+          <h1>{t("welcome")}</h1>
+          <p>{t("content.connect")}</p>
+          <Button onClick={() => activateConnection()}>{t("connect")}</Button>
+        </article>
+      );
+    case NSLookupStates.ERROR:
+      return <Spinner animation="border" />;
+    case NSLookupStates.NO_RESOLVE:
+    case NSLookupStates.SUCCESS:
+      return (
+        <AccountControlStyle>
+          <button onClick={toggleWalletButtonState}>{getProfileContents()}</button>
+          <AccountMenuStyle state={walletButtonState}>
+            <em>{t("accounts")}</em>
+            {getAllAccounts()}
+            <hr />
+            {getDisconnect()}
+          </AccountMenuStyle>
+        </AccountControlStyle>
+      );
+    case NSLookupStates.FETCHING:
+      return <Spinner animation="border" />;
+  }
 };
 
 export default WalletConnect;
 
-const BlockieStyle = styled(Blockie)`
-  top: 0;
-  left: 0;
-  display: inline;
+const BlockieStyle = styled.span`
+  & img {
+    top: 0;
+    left: 0;
+    width: ${(props: { size: number }) => (props.size ? `${props.size}px` : "100%")} !important;
+    height: ${(props: { size: number }) => (props.size ? `${props.size}px` : "100%")} !important;
+    border-radius: 10%;
+  }
 `;
 
 const AccountMenuStyle = styled.aside`

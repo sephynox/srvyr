@@ -1,23 +1,19 @@
 import React from "react";
 import styled from "styled-components";
-import { Image, Spinner } from "react-bootstrap";
+import { Spinner } from "react-bootstrap";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faExclamationTriangle, faUser } from "@fortawesome/free-solid-svg-icons";
 import makeBlockie from "ethereum-blockies-base64";
 
-const BLOCKIE_DEFAULT_SIZE = 50;
-
 type BlockiesProps = {
   addresses: string[];
   states: Record<string, BlockieState>;
-  size: number;
   enses?: Record<string, string>;
 };
 
 type BlockieProps = {
   state: BlockieState;
   address: string;
-  size?: number;
   ens?: string | null;
 };
 
@@ -31,18 +27,18 @@ export enum BlockieState {
 const formatAddress = (address: string) =>
   `${address.substring(0, 5)}...${address.substring(address.length - 4, address.length)}`;
 
-export const Blockie = ({ state, address, size = BLOCKIE_DEFAULT_SIZE, ens = null }: BlockieProps): JSX.Element => {
+export const Blockie: React.FunctionComponent<BlockieProps> = ({ state, address, ens = null }): JSX.Element => {
   switch (state) {
     case BlockieState.SUCCESS:
       if (ens) {
         return (
           <figure>
-            <BlockieStyle src={makeBlockie(address ?? "")} alt={address} width={size} />
+            <img src={makeBlockie(address ?? "")} alt={address} />
             <address>{<BlockieEnsStyle>{ens ?? formatAddress(address)}</BlockieEnsStyle>}</address>
           </figure>
         );
       } else {
-        return <BlockieStyle src={makeBlockie(address ?? "")} alt={address} width={size} />;
+        return <img src={makeBlockie(address ?? "")} alt={address} />;
       }
     case BlockieState.FETCHING:
       return <Spinner animation="border" />;
@@ -53,15 +49,9 @@ export const Blockie = ({ state, address, size = BLOCKIE_DEFAULT_SIZE, ens = nul
   }
 };
 
-export const Blockies = ({ states, addresses, size = BLOCKIE_DEFAULT_SIZE }: BlockiesProps): JSX.Element[] => {
-  return addresses.map((address, i) => <Blockie key={i} state={states[address]} address={address} size={size} />);
+export const Blockies = ({ states, addresses }: BlockiesProps): JSX.Element[] => {
+  return addresses.map((address, i) => <Blockie key={i} state={states[address]} address={address} />);
 };
-
-const BlockieStyle = styled(Image)`
-  width: ${(props: { width: number }) => (props.width ? `${props.width}px` : "100%")} !important;
-  height: ${(props: { width: number }) => (props.width ? `${props.width}px` : "100%")} !important;
-  border-radius: 10%;
-`;
 
 const BlockieEnsStyle = styled.cite`
   display: block;

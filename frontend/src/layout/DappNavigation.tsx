@@ -1,13 +1,13 @@
 import React, { useContext } from "react";
 import { NavLink } from "react-router-dom";
+import { Spinner } from "react-bootstrap";
 import styled from "styled-components";
-import { useEthers } from "@usedapp/core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
-import { AppContext } from "../App";
-import { DappContext } from "../Dapp";
-
 import { ThemeEngine } from "../styles/GlobalStyle";
+import { AppContext } from "../App";
+import { DappContext, getBlockieState } from "../Dapp";
+import { NSLookupStates } from "../actions/Network";
 import LanguageSelector from "./LanguageSelector";
 import Logo from "./Logo";
 import { NavBlock } from "./Navigation";
@@ -15,6 +15,7 @@ import WalletConnect from "./WalletConnect";
 import ToggleTheme from "./ToggleTheme";
 import { NavState } from "./NavToggle";
 import Gastimate from "../components/Gastimate";
+import { Blockie } from "../components/Blockies";
 
 type Props = {
   links: NavBlock[];
@@ -24,7 +25,6 @@ type Props = {
 const DappNavigation: React.FunctionComponent<Props> = ({ links, navState }): JSX.Element => {
   const appContext = useContext(AppContext);
   const dappContext = useContext(DappContext);
-  const { active } = useEthers();
 
   const buildLink = (link: NavBlock, index: number): JSX.Element => {
     return (
@@ -36,38 +36,87 @@ const DappNavigation: React.FunctionComponent<Props> = ({ links, navState }): JS
     );
   };
 
+  const getNavState = (): JSX.Element => {
+    switch (dappContext.state.activeAddress.type) {
+      case NSLookupStates.EMPTY:
+        return (
+          <>
+            <ul></ul>
+            <WalletConnect />
+            <ul></ul>
+          </>
+        );
+      case NSLookupStates.ERROR:
+        return <Spinner animation="border" />;
+      case NSLookupStates.NO_RESOLVE:
+      case NSLookupStates.SUCCESS:
+        return (
+          <>
+            <WalletConnect primary={true} />
+            <hr />
+            <NavLinksStyle>{links.map((link, i) => buildLink(link, i))}</NavLinksStyle>
+            <GastimateCenterStyle>
+              <Gastimate provider={dappContext.ethersProvider} />
+            </GastimateCenterStyle>
+            <hr />
+          </>
+        );
+      case NSLookupStates.FETCHING:
+        return <Spinner animation="border" />;
+    }
+  };
+
+  const getMobileHeaderBlockie = (): JSX.Element | undefined => {
+    const primary = dappContext.state.activeAddress;
+    return (
+      primary &&
+      primary.data && (
+        <HeaderBlockStyle size={24}>
+          <Blockie state={getBlockieState(primary.type)} address={primary.data?.address ?? ""} />
+        </HeaderBlockStyle>
+      )
+    );
+  };
+
   return (
-    <NavStyle navState={navState}>
-      <section>
-        <Logo mode={appContext.theme} />
-        <ToggleTheme theme={appContext.theme} setTheme={appContext.setTheme} />
-      </section>
-      {active && !!dappContext.activeAddress?.data ? (
-        <>
-          <WalletConnect />
-          <hr />
-          <NavLinksStyle>{links.map((link, i) => buildLink(link, i))}</NavLinksStyle>
-          <GastimateCenterStyle>
-            <Gastimate provider={dappContext.ethersProvider} />
-          </GastimateCenterStyle>
-          <hr />
-        </>
-      ) : (
-        <>
-          <ul></ul>
-          <WalletConnect />
-          <ul></ul>
-        </>
-      )}
-      <section>
-        <LanguageSelector language={appContext.language} setLanguage={appContext.setLanguage} />
-        <em>v{process.env.REACT_APP_BUILD_VERSION}</em>
-      </section>
-    </NavStyle>
+    <>
+      <NavStyle navState={navState}>
+        <section>
+          <Logo mode={appContext.theme} />
+          <ToggleTheme theme={appContext.theme} setTheme={appContext.setTheme} />
+        </section>
+        {getNavState()}
+        <section>
+          <LanguageSelector language={appContext.language} setLanguage={appContext.setLanguage} />
+          <em>v{process.env.REACT_APP_BUILD_VERSION}</em>
+        </section>
+      </NavStyle>
+      {getMobileHeaderBlockie()}
+    </>
   );
 };
 
 export default DappNavigation;
+
+const HeaderBlockStyle = styled.span`
+  display: none;
+  z-index: 998;
+
+  & img {
+    width: 32px;
+    height: 32px;
+    border-radius: 10%;
+  }
+
+  @media screen and (max-width: 992px) {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    padding-left: 14px;
+    padding-top: 14px;
+  }
+`;
 
 const GastimateCenterStyle = styled.span`
   text-align: right;

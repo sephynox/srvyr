@@ -7,10 +7,20 @@ import { ethers } from "hardhat";
 
 async function main() {
   const BalanceChecker = await ethers.getContractFactory("BalanceChecker");
-  const checker = await BalanceChecker.deploy();
+  // const TestToken = await ethers.getContractFactory("TestToken");
+  // const TestNFT = await ethers.getContractFactory("TestNFT");
 
-  await checker.deployed();
-  console.log("BalanceChecker deployed to:", checker.address);
+  const balanceChecker = await BalanceChecker.deploy();
+  // const testToken = await TestToken.deploy("TestToken", "TST", 100000);
+  // const testNFT = await TestNFT.deploy("TestNFT", "TNT");
+
+  await balanceChecker.deployed();
+  // await testToken.deployed();
+  // await testNFT.deployed();
+
+  console.log("BalanceChecker deployed to:", balanceChecker.address);
+  // console.log("TestToken deployed to:", testToken.address);
+  // console.log("TestNFT deployed to:", testNFT.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

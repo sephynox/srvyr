@@ -45,8 +45,8 @@ contract BalanceChecker is ERC165 {
             interfaceID ==
             this.tokenBalance.selector ^
                 this.tokenBalances.selector ^
-                this.tokenBalanceWithInterface.selector ^
-                this.tokenBalancesWithInterface.selector;
+                this.tokenBalanceWithInterfaces.selector ^
+                this.tokenBalancesWithInterfaces.selector;
     }
 
     /// Return the balance of a specified token for an account.
@@ -67,12 +67,12 @@ contract BalanceChecker is ERC165 {
     /// @param token The address of the token contract
     /// @param interfaceID The interface to check for.
     /// @return uint256 of the balance
-    function tokenBalanceWithInterface(
+    function tokenBalanceWithInterfaces(
         address user,
         address token,
-        bytes4 interfaceID
+        bytes4[] memory interfaceID
     ) public view returns (uint256) {
-        return _tokenBalance(user, token, _legionBytes(interfaceID));
+        return _tokenBalance(user, token, interfaceID);
     }
 
     /// Return the balance of a specified token for an account.
@@ -93,12 +93,12 @@ contract BalanceChecker is ERC165 {
     /// @param tokens the addresses of the token contracts
     /// @param interfaceID Pass 0xffffffff to use the default ERC20/721/1155
     /// @return uint256[] of the balances
-    function tokenBalancesWithInterface(
+    function tokenBalancesWithInterfaces(
         address[] memory users,
         address[] memory tokens,
-        bytes4 interfaceID
+        bytes4[] memory interfaceID
     ) external view returns (uint256[] memory) {
-        return _balances(users, tokens, _legionBytes(interfaceID));
+        return _balances(users, tokens, interfaceID);
     }
 
     function _balances(
@@ -168,16 +168,5 @@ contract BalanceChecker is ERC165 {
         }
 
         return result;
-    }
-
-    function _legionBytes(bytes4 oneByte)
-        private
-        pure
-        returns (bytes4[] memory)
-    {
-        bytes4[] memory interfaces = new bytes4[](1);
-        interfaces[0] = oneByte;
-
-        return interfaces;
     }
 }

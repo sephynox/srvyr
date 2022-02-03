@@ -1,12 +1,11 @@
-import React, { createContext, Dispatch, Suspense, useCallback, useEffect, useReducer, useState } from "react";
+import React, { createContext, Dispatch, useCallback, useEffect, useLayoutEffect, useReducer, useState } from "react";
 import { Outlet } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
-import { Spinner } from "react-bootstrap";
 import { ThemeProvider } from "styled-components";
 
-import i18next, { i18nNamespace } from "./services/i18n";
 import * as Constants from "./Constants";
+import { i18nNamespace } from "./services/i18n";
 import { supportedLanguages } from "./Data";
 import { ExternalLocaleState, externalLocaleReducer, initialExternalLocaleState } from "./actions/ExternalLocale";
 import { GlobalStyle } from "./styles/GlobalStyle";
@@ -17,7 +16,42 @@ import Overlay, { OverlayState } from "./layout/Overlay";
 import Theme, { Themes, availableThemes } from "./tools/Themes";
 import BackTop from "./tools/BackTop";
 
+export enum AppAction {
+  TOAST,
+  SET_THEME,
+  SET_LANGUAGE,
+  SHOW_OVERLAY,
+  HIDE_OVERLAY,
+  OPEN_NAV,
+  CLOSE_NAV,
+  LOG,
+}
+
+export type AppActions = { type: AppAction.TOAST; toast: ToasterTypes; message: string };
+
+type AppState = {
+  testMode: boolean;
+  theme: Themes;
+  language: string;
+};
+
+const initialAppState: AppState = JSON.parse(localStorage.getItem("appState") ?? "null") || {
+  testMode: process.env.NODE_ENV === "test",
+  theme: window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? Themes.LIGHT : Themes.DARK,
+  language: Constants.DEFAULT_LANG,
+};
+
+const appReducer = (state: AppState, action: AppActions): AppState => {
+  switch (action.type) {
+    case AppAction.TOAST:
+      toast(action.message, action.toast);
+      return state;
+  }
+};
+
 export const AppContext = createContext<{
+  state: AppState;
+  dispatch: Dispatch<AppActions>;
   testMode: boolean;
   theme: Themes;
   getTheme: (value: Themes) => Theme;
@@ -32,6 +66,8 @@ export const AppContext = createContext<{
   toast: (message: string, type: ToasterTypes) => React.ReactText;
   logEvent: (event: Record<string, string>, debug?: boolean) => void;
 }>({
+  state: initialAppState,
+  dispatch: () => null,
   testMode: false,
   theme: Themes.DARK,
   getTheme: () => availableThemes[Themes.DARK],
@@ -49,6 +85,7 @@ export const AppContext = createContext<{
 
 const App: React.FunctionComponent = (): JSX.Element => {
   const { i18n } = useTranslation();
+  const [state, dispatch] = useReducer(appReducer, initialAppState);
 
   const testMode: boolean = process.env.NODE_ENV === "test";
   const isLightScheme = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
@@ -97,16 +134,19 @@ const App: React.FunctionComponent = (): JSX.Element => {
     changeLanguageHandler(language);
   }, [language, changeLanguageHandler]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     localStorage.setItem("externalLocaleState", JSON.stringify(externalLocaleState));
+
     supportedLanguages.forEach((lang) => {
       if (externalLocaleState.data && externalLocaleState.data[lang] !== undefined) {
-        i18next.addResourceBundle(lang, i18nNamespace.EXTERNAL, externalLocaleState.data[lang]);
+        i18n.addResourceBundle(lang, i18nNamespace.EXTERNAL, externalLocaleState.data[lang]);
       }
     });
-  }, [externalLocaleState]);
+  }, [i18n, externalLocaleState]);
 
   const appContext = {
+    state,
+    dispatch,
     testMode,
     theme,
     getTheme,
@@ -123,25 +163,17 @@ const App: React.FunctionComponent = (): JSX.Element => {
   };
 
   return (
-    <Suspense
-      fallback={
-        <Spinner animation="border" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </Spinner>
-      }
-    >
-      <HelmetProvider>
-        <ThemeProvider theme={availableThemes[theme]}>
-          <AppContext.Provider value={appContext}>
-            <Outlet />
-            <Overlay state={overlayState as OverlayState} />
-            <BackTop textColor={getTheme(theme).text} backgroundColor={getTheme(theme).background} />
-            <Toaster theme={theme === Themes.LIGHT ? "light" : "dark"} />
-            <GlobalStyle />
-          </AppContext.Provider>
-        </ThemeProvider>
-      </HelmetProvider>
-    </Suspense>
+    <HelmetProvider>
+      <ThemeProvider theme={availableThemes[theme]}>
+        <AppContext.Provider value={appContext}>
+          <Outlet />
+          <Overlay state={overlayState as OverlayState} />
+          <BackTop textColor={getTheme(theme).text} backgroundColor={getTheme(theme).background} />
+          <Toaster theme={theme === Themes.LIGHT ? "light" : "dark"} />
+          <GlobalStyle />
+        </AppContext.Provider>
+      </ThemeProvider>
+    </HelmetProvider>
   );
 };
 

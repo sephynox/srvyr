@@ -2,6 +2,7 @@ import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import Backend from "i18next-http-backend";
+
 import * as Constants from "../Constants";
 
 export enum i18nNamespace {
@@ -15,13 +16,14 @@ i18next
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    ns: Object.values(i18nNamespace),
-    defaultNS: "common",
-    debug: Constants.DEV_MODE,
+    lng: Constants.DEFAULT_LANG,
     fallbackLng: Constants.DEFAULT_LANG,
+    ns: [i18nNamespace.COMMON],
+    defaultNS: i18nNamespace.COMMON,
+    debug: Constants.DEV_MODE,
     saveMissing: false,
     react: {
-      useSuspense: false,
+      useSuspense: true,
     },
     backend: {
       allowMultiLoading: true,
