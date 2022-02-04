@@ -9,6 +9,7 @@ import React, {
   useState,
 } from "react";
 import { Outlet } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import { DAppProvider } from "@usedapp/core";
 import { ethers } from "ethers";
@@ -22,6 +23,7 @@ import { AppAction, AppContext } from "./App";
 import Header from "./layout/Header";
 import DappNavigation from "./layout/DappNavigation";
 import Footer from "./layout/Footer";
+import { ToasterTypes } from "./layout/Toaster";
 import {
   initialNSLookupState,
   initialNSLookupCache,
@@ -38,12 +40,14 @@ import {
   Networks,
   addAddressCache,
   NSLookupData,
+  AssetPortfolio,
+  Address,
+  AssetPortfolioCache,
 } from "./actions/Network";
-import { EthereumTokenStandards, fetchAddress, fetchTokens } from "./actions/Ethereum";
+import { EthereumTokenStandards, fetchAddress as fetchEtherAddress, fetchTokens } from "./actions/Ethereum";
+import { Symfoni } from "./hardhat/SymfoniContext";
 import { BlockieState } from "./components/Blockies";
 import { shortDisplayAddress } from "./utils/data-helpers";
-import { ToasterTypes } from "./layout/Toaster";
-import { useTranslation } from "react-i18next";
 import usePrevious from "./utils/custom-hooks";
 
 declare global {
@@ -72,7 +76,7 @@ export enum DappAction {
   DISCONNECT = "DISCONNECT",
   SET_ACTIVE_ADDRESS = "SET_ACTIVE_ADDRESS",
   ADD_USER_ADDRESS = "ADD_USER_ADDRESS",
-  RESOLVE_ADDRESS = "RESOLVE_ADDRESS",
+  ADD_CACHE_PORTFOLIO = "ADD_CACHE_PORTFOLIO",
 }
 
 enum InternalDappAction {
@@ -86,8 +90,9 @@ export type DappActions =
   | { type: DappAction.DISCONNECT }
   | { type: DappAction.SET_ACTIVE_ADDRESS; address: NSLookupState }
   | { type: DappAction.ADD_USER_ADDRESS; address: NSLookupState }
-  | { type: DappAction.RESOLVE_ADDRESS; address: NSLookupState }
+  | { type: DappAction.ADD_CACHE_PORTFOLIO; address: Address; data: AssetPortfolio }
   | { type: InternalDappAction.RESOLVE_TOKENS; tokens: TokenLookupState }
+  | { type: InternalDappAction.ADD_CACHE_ADDRESS; address: NSLookupState }
   | { type: InternalDappAction.ADD_CACHE_ADDRESS; address: NSLookupState }
   | { type: InternalDappAction.ACK_ADDED_ADDRESS }
   | { type: InternalDappAction.ACK_DISCONNECT_ALERTED };
@@ -100,16 +105,22 @@ type DappState = {
   tokenLookupState: TokenLookupState;
   tokenLookupCache: TokenLookupCache;
   nsLookupCache: NSLookupCache;
+  addressPortfolioCache: AssetPortfolioCache;
+};
+
+const hardStateResets = {
+  alertDisconnected: false,
+  addedAddress: undefined,
+  tokenLookupState: initialTokenLookupState,
 };
 
 const initialDappState: DappState = JSON.parse(localStorage.getItem("dappState") ?? "null") || {
-  alertDisconnected: false,
   userAddresses: [],
-  addedAddress: undefined,
+  addressPortfolioCache: {},
   activeAddress: initialNSLookupState,
-  tokenLookupState: initialTokenLookupState,
   tokenLookupCache: initialTokenLookupCache,
   nsLookupCache: initialNSLookupCache,
+  ...hardStateResets,
 };
 
 const dappReducer = (state: DappState, action: DappActions): DappState => {
@@ -121,8 +132,9 @@ const dappReducer = (state: DappState, action: DappActions): DappState => {
     case DappAction.ADD_USER_ADDRESS:
       const addresses = Array.from(new Set([action.address, ...state.userAddresses]));
       return { ...state, addedAddress: action.address.data, userAddresses: addresses };
-    case DappAction.RESOLVE_ADDRESS:
-      return { ...state };
+    case DappAction.ADD_CACHE_PORTFOLIO:
+      const cache = { ...state.addressPortfolioCache, ...{ [action.address]: action.data } };
+      return { ...state, addressPortfolioCache: cache };
     case InternalDappAction.RESOLVE_TOKENS:
       switch (action.tokens.type) {
         case TokenLookupStates.FETCHING:
@@ -160,14 +172,14 @@ export const DappContext = createContext<{
   dispatch: Dispatch<DappActions>;
   lookupToken: (token: string) => TokenData | undefined;
   lookupUserAddress: (address: string, user: boolean) => NSLookupState | undefined;
-  resolveAddress: (address: string) => (dispatch: Dispatch<NSLookupState>) => Promise<void>;
+  resolveEthereumAddress: (address: string) => (dispatch: Dispatch<NSLookupState>) => Promise<void>;
 }>({
   ethersProvider: ethers.getDefaultProvider(),
   state: initialDappState,
   dispatch: () => null,
   lookupToken: () => undefined,
   lookupUserAddress: () => undefined,
-  resolveAddress: () => () =>
+  resolveEthereumAddress: () => () =>
     new Promise(() => {
       return;
     }),
@@ -178,7 +190,7 @@ const Dapp: React.FunctionComponent = (): JSX.Element => {
   const { t } = useTranslation();
 
   const isActive = useRef(true);
-  const [state, dispatch] = useReducer(dappReducer, initialDappState);
+  const [state, dispatch] = useReducer(dappReducer, { ...initialDappState, ...hardStateResets });
   const [ethersProvider] = useState<ethers.providers.Provider>(
     process.env.NODE_ENV === "production"
       ? new ethers.providers.InfuraProvider(Constants.DEFAULT_ETHERS_NETWORK, Constants.DAPP_CONFIG)
@@ -239,12 +251,8 @@ const Dapp: React.FunctionComponent = (): JSX.Element => {
     }
   };
 
-  const getAllTokens = (network: Networks): TokenData[] => {
-    return state.tokenLookupCache.network[network];
-  };
-
   const resolveAddress =
-    (address: string) =>
+    (address: string, network: Networks) =>
     async (localDispatch: Dispatch<NSLookupState>): Promise<void> => {
       const forward = state.nsLookupCache.forward[address];
       const reverse = state.nsLookupCache.reverse[address];
@@ -255,19 +263,26 @@ const Dapp: React.FunctionComponent = (): JSX.Element => {
         promise = Promise.resolve();
         localDispatch({ type: NSLookupStates.SUCCESS, data: forward ?? reverse });
       } else {
-        promise = new Promise(() =>
-          fetchAddress(
-            { network: Networks.ETHEREUM, address: address },
-            ethersProvider
-          )((state: NSLookupState) => {
-            dispatch({ type: InternalDappAction.ADD_CACHE_ADDRESS, address: state });
-            localDispatch(state);
-          })
-        );
+        promise = new Promise(() => {
+          switch (network) {
+            case Networks.ETHEREUM:
+              return fetchEtherAddress(
+                { network: Networks.ETHEREUM, address: address },
+                ethersProvider
+              )((state: NSLookupState) => {
+                dispatch({ type: InternalDappAction.ADD_CACHE_ADDRESS, address: state });
+                localDispatch(state);
+              });
+          }
+        });
       }
 
       return promise;
     };
+
+  const resolveEthereumAddress = (address: string) => {
+    return resolveAddress(address, Networks.ETHEREUM);
+  };
 
   const dappContext = {
     ethersProvider,
@@ -275,7 +290,7 @@ const Dapp: React.FunctionComponent = (): JSX.Element => {
     dispatch,
     lookupToken,
     lookupUserAddress,
-    resolveAddress,
+    resolveEthereumAddress,
   };
 
   const prevAddress = usePrevious(state.activeAddress);
@@ -344,9 +359,11 @@ const Dapp: React.FunctionComponent = (): JSX.Element => {
         <Header>
           <DappNavigation links={state.activeAddress ? dappNavLinks : []} navState={appContext.state.navState} />
         </Header>
-        <MainStyle>
-          <Outlet />
-        </MainStyle>
+        <Symfoni>
+          <MainStyle>
+            <Outlet />
+          </MainStyle>
+        </Symfoni>
         <Footer />
       </DappContext.Provider>
     </DAppProvider>

@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useState } from "react";
+import React, { useCallback, useContext, useEffect, useReducer, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
@@ -8,22 +8,55 @@ import styled from "styled-components";
 import { ThemeEngine } from "../styles/GlobalStyle";
 import { Section } from "../styles/Section";
 import { DappContext, getBlockieState } from "../Dapp";
-import { initialNSLookupState, NSLookupState } from "../actions/Network";
+import { AssetPortfolio, initialNSLookupState, Networks, NSLookupState } from "../actions/Network";
 import Assets from "../components/Assets";
 import { Blockie } from "../components/Blockies";
 import Copy from "../components/Copy";
 import { shortDisplayAddress } from "../utils/data-helpers";
 
-//import { BalanceCheckerContext } from "./../hardhat/SymfoniContext";
+import { BalanceCheckerContext } from "./../hardhat/SymfoniContext";
+import { ethers } from "ethers";
+
+enum OverviewAction {
+  SET_ADDRESS = "SET_ADDRESS",
+}
+
+type OverviewActions = { type: OverviewAction.SET_ADDRESS; data: NSLookupState };
+
+type OverviewState = {
+  addressState: NSLookupState;
+  portfolioDataState: AssetPortfolio;
+  transactionDataState: Record<string, string>; // TODO
+};
+
+const initialOverviewState = {
+  addressState: initialNSLookupState,
+  portfolioDataState: {},
+  transactionDataState: {},
+};
+
+const overviewReducer = (state: OverviewState, action: OverviewActions): OverviewState => {
+  switch (action.type) {
+    case OverviewAction.SET_ADDRESS:
+      return { ...state, addressState: action.data };
+  }
+};
 
 const Overview = (): JSX.Element => {
   const dappContext = useContext(DappContext);
-  //const balanceChecker = useContext(BalanceCheckerContext);
+  const balanceChecker = useContext(BalanceCheckerContext);
   const { t } = useTranslation();
   const props = useParams();
   const navigate = useNavigate();
 
-  const [addressState, setAddressState] = useState<NSLookupState>(initialNSLookupState);
+  const isActive = useRef(true);
+  const [state, dispatch] = useReducer(overviewReducer, initialOverviewState);
+
+  const setAddressStateAssist = (state: NSLookupState) => {
+    if (isActive) {
+      dispatch({ type: OverviewAction.SET_ADDRESS, data: state });
+    }
+  };
 
   const checkProps = useCallback(() => {
     if (!props.account) {
@@ -31,26 +64,43 @@ const Overview = (): JSX.Element => {
         navigate(`${dappContext.state.activeAddress.data.address}`, { replace: true });
       }
     } else {
-      dappContext.resolveAddress(props.account)(setAddressState);
+      dappContext.resolveEthereumAddress(props.account)(setAddressStateAssist);
     }
   }, [props.account, dappContext, navigate]);
 
-  // const checkEtherBalances = useCallback(() => {
-  //   if (balanceChecker.instance && addressState.data && addressState.data.address) {
-  //     balanceChecker.instance.tokenBalances([addressState.data.address]);
-  //   }
-  // }, [addressState, balanceChecker]);
+  const checkEtherBalances = useCallback(async () => {
+    const networkContracts = dappContext.state.tokenLookupCache.network[Networks.ETHEREUM];
 
-  // const checkBalances = useCallback(() => {
-  //   // if ether address
-  //   checkEtherBalances();
-  //   // checkCardanoBalances(); etc.
-  // }, [checkEtherBalances]);
+    if (Object.entries(networkContracts).length > 0) {
+      const contractAddresses = networkContracts.map((record) => record.contract);
+
+      if (balanceChecker.instance && state.addressState.data && state.addressState.data.address) {
+        try {
+          balanceChecker.instance
+            .attach("0x99dbe4aea58e518c50a1c04ae9b48c9f6354612f") // FIXME
+            .tokenBalances([state.addressState.data.address], contractAddresses)
+            .then((balances) => {
+              balances.forEach((balance, i) => {
+                console.log(i, ethers.utils.formatUnits(balance, 18));
+              });
+            });
+        } catch (e) {
+          console.log(e);
+        }
+      }
+    }
+  }, [state.addressState.data, dappContext.state.tokenLookupCache.network, balanceChecker.instance]);
 
   useEffect(() => {
     checkProps();
-    //checkBalances();
-  }, [checkProps]);
+    // if ether address
+    checkEtherBalances();
+    // checkCardanoBalances(); etc.
+
+    return () => {
+      isActive.current = false;
+    };
+  }, [checkProps, checkEtherBalances]);
 
   return (
     <>
@@ -66,17 +116,22 @@ const Overview = (): JSX.Element => {
           <SummaryStyle>
             <figure>
               <BlockieStyle size={100}>
-                <Blockie state={getBlockieState(addressState.type)} address={addressState.data?.address ?? ""} />
+                <Blockie
+                  state={getBlockieState(state.addressState.type)}
+                  address={state.addressState.data?.address ?? ""}
+                />
               </BlockieStyle>{" "}
               <figcaption>
                 <h2>
                   <address>
-                    {addressState.data?.ns ? addressState.data.ns : shortDisplayAddress(addressState.data?.address)}
+                    {state.addressState.data?.ns
+                      ? state.addressState.data.ns
+                      : shortDisplayAddress(state.addressState.data?.address)}
                   </address>
                 </h2>
                 <h3>
-                  {shortDisplayAddress(addressState.data?.address)}{" "}
-                  <Copy copyText={t("copied")} text={addressState.data?.address ?? ""} />
+                  {shortDisplayAddress(state.addressState.data?.address)}{" "}
+                  <Copy copyText={t("copied")} text={state.addressState.data?.address ?? ""} />
                 </h3>
                 <em>Active Since: TODO</em>
               </figcaption>

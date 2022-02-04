@@ -136,7 +136,7 @@ export const fetchTokens =
   async (dispatch: Dispatch<TokenLookupState>): Promise<void> => {
     dispatch({ type: TokenLookupStates.FETCHING });
 
-    fetch(`data/${type}.json`)
+    fetch(`/data/${type}.json`)
       .then((response) => response.json())
       .then(
         (result) => {

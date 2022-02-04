@@ -13,8 +13,10 @@ export enum TokenLookupErrors {
   FAILED = "Call to retrieve token information failed.",
 }
 
+export type Address = string;
+
 export type NSLookupCache = {
-  forward: Record<string, NSLookupData>;
+  forward: Record<Address, NSLookupData>;
   reverse: Record<string, NSLookupData>;
 };
 
@@ -23,20 +25,21 @@ export type TokenLookupCache = {
   network: Record<Networks, TokenData[]>;
   name: Record<string, TokenData>;
   symbol: Record<string, TokenData>;
-  contract: Record<string, TokenData>;
+  contract: Record<Address, TokenData>;
 };
 
 export type NSLookupData = {
   network: Networks;
   ns?: string | null | undefined;
-  address?: string | null | undefined;
+  address?: Address | null | undefined;
 };
 
 export type TokenData = {
   network: Networks;
   name: string;
   symbol: string;
-  contract: string;
+  contract: Address;
+  precision: number;
 };
 
 export type AssetPriceData = TokenData & {
@@ -48,6 +51,8 @@ export type AssetAmountData = TokenData & {
 };
 
 export type AssetPortfolio = Record<string, AssetAmountState>;
+
+export type AssetPortfolioCache = Record<string, AssetPortfolio>;
 
 export enum NSLookupStates {
   EMPTY,
@@ -117,8 +122,9 @@ export const buildTokenCache = (data: TokenData[]): TokenLookupCache => {
   const cache = { ...initialTokenLookupCache, age: Date.now() };
 
   data.forEach((tokenLookupData) => {
-    // TODO Fix duplication
-    cache.network[tokenLookupData.network].push(tokenLookupData);
+    cache.network[tokenLookupData.network] = Array.from(
+      new Set([tokenLookupData, ...cache.network[tokenLookupData.network]])
+    );
     cache.name[tokenLookupData.name] = tokenLookupData;
     cache.symbol[tokenLookupData.symbol] = tokenLookupData;
     cache.contract[tokenLookupData.contract] = tokenLookupData;

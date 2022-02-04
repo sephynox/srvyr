@@ -10,6 +10,7 @@ import "@nomiclabs/hardhat-ethers";
 import "@typechain/hardhat";
 import "@typechain/ethers-v5";
 import "@symfoni/hardhat-react";
+import "hardhat-deploy";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
 
@@ -29,10 +30,28 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
 // Go to https://hardhat.org/config/ to learn more
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.4",
+  solidity: {
+    compilers: [
+      {
+        version: "0.8.4",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 50,
+          },
+        },
+      },
+    ],
+  },
+  react: {
+    providerPriority: ["web3modal", "hardhat"],
+  },
   networks: {
     hardhat: {
       chainId: 1337,
+      // accounts: {
+      //   mnemonic: "test test test test test test test test test test test junk",
+      // },
       forking: {
         enabled: true,
         url: `${process.env.INFURA_URL}`,

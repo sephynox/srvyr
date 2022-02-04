@@ -3,18 +3,21 @@
     "network": "Ethereum",
     "name": "TestToken",
     "symbol": "TST",
-    "contract": "0xF32D39ff9f6Aa7a7A64d7a4F00a54826Ef791a55"
+    "contract": "0x5feaebfb4439f3516c74939a9d04e95afe82c4ae",
+    "precision": 18
   },
   {
     "network": "Ethereum",
     "name": "Ethereum",
     "symbol": "ETH",
-    "contract": "0x0000000000000000000000000000000000000000"
+    "contract": "0x0000000000000000000000000000000000000000",
+    "precision": 18
   },
   {
     "network": "Ethereum",
     "name": "USD Coin",
     "symbol": "USDC",
-    "contract": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+    "contract": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+    "precision": 18
   }
 ]
