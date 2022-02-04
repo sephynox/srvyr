@@ -5,7 +5,7 @@ import styled from "styled-components";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import { ThemeEngine } from "../styles/GlobalStyle";
-import { AppContext } from "../App";
+import { AppAction, AppContext } from "../App";
 import { DappContext, getBlockieState } from "../Dapp";
 import { NSLookupStates } from "../actions/Network";
 import LanguageSelector from "./LanguageSelector";
@@ -29,7 +29,7 @@ const DappNavigation: React.FunctionComponent<Props> = ({ links, navState }): JS
   const buildLink = (link: NavBlock, index: number): JSX.Element => {
     return (
       <li key={index}>
-        <NavLinkStyle onClick={() => appContext.setNavState(NavState.CLOSED)} to={link.to}>
+        <NavLinkStyle onClick={() => appContext.dispatch({ type: AppAction.CLOSE_NAV })} to={link.to}>
           <FontAwesomeIcon size="lg" icon={link.icon} /> <div>{link.text}</div>
         </NavLinkStyle>
       </li>
@@ -52,7 +52,7 @@ const DappNavigation: React.FunctionComponent<Props> = ({ links, navState }): JS
       case NSLookupStates.SUCCESS:
         return (
           <>
-            <WalletConnect primary={true} />
+            <WalletConnect />
             <hr />
             <NavLinksStyle>{links.map((link, i) => buildLink(link, i))}</NavLinksStyle>
             <GastimateCenterStyle>
@@ -82,12 +82,18 @@ const DappNavigation: React.FunctionComponent<Props> = ({ links, navState }): JS
     <>
       <NavStyle navState={navState}>
         <section>
-          <Logo mode={appContext.theme} />
-          <ToggleTheme theme={appContext.theme} setTheme={appContext.setTheme} />
+          <Logo mode={appContext.state.theme} />
+          <ToggleTheme
+            theme={appContext.state.theme}
+            setTheme={(theme) => appContext.dispatch({ type: AppAction.SET_THEME, theme })}
+          />
         </section>
         {getNavState()}
         <section>
-          <LanguageSelector language={appContext.language} setLanguage={appContext.setLanguage} />
+          <LanguageSelector
+            language={appContext.state.language}
+            setLanguage={(language) => appContext.dispatch({ type: AppAction.SET_LANGUAGE, language })}
+          />
           <em>v{process.env.REACT_APP_BUILD_VERSION}</em>
         </section>
       </NavStyle>

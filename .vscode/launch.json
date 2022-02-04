@@ -2,6 +2,14 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug React",
+      "program": "${workspaceFolder}/frontend/src/index.tsx",
+      "preLaunchTask": "tsc: build - frontend/tsconfig.json",
+      "outFiles": ["${workspaceFolder}/out/**/*.js"]
+    },
+    {
       "type": "solidityMeadow",
       "request": "launch",
       "name": "Debug Solidity"

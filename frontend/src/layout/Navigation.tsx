@@ -3,8 +3,7 @@ import React, { Component, useContext } from "react";
 import { useTranslation } from "react-i18next";
 import { NavLink } from "react-router-dom";
 
-import { AppContext } from "../App";
-import { NavState } from "./NavToggle";
+import { AppAction, AppContext } from "../App";
 
 export type Crumb = {
   text: string;
@@ -37,7 +36,7 @@ export const NavItem = ({ keyId, text, icon, to, className = "nav-link" }: NavBl
   const appContext = useContext(AppContext);
 
   return (
-    <NavLink onClick={() => appContext.setNavState(NavState.CLOSED)} className={className} to={to}>
+    <NavLink onClick={() => appContext.dispatch({ type: AppAction.CLOSE_NAV })} className={className} to={to}>
       <i className={"nav-link" + icon}></i> <span>{t(text, text)}</span>
     </NavLink>
   );

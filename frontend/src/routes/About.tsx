@@ -40,7 +40,7 @@ const Overview = (): JSX.Element => {
           <header>
             <h1>{t("about")}</h1>
           </header>
-          <Logo mode={appContext.theme} />
+          <Logo mode={appContext.state.theme} />
           <Quote
             quote={"Something profound"}
             author="Someone profound"

@@ -7,7 +7,7 @@ import { faChevronDown, faTimes } from "@fortawesome/free-solid-svg-icons";
 import { useEthers } from "@usedapp/core";
 
 import { ThemeEngine } from "../styles/GlobalStyle";
-import { AppContext } from "../App";
+import { AppAction, AppContext } from "../App";
 import { DappAction, DappContext, getBlockieState } from "../Dapp";
 import { ToasterTypes } from "./Toaster";
 import { Networks, NSLookupState, NSLookupStates } from "../actions/Network";
@@ -15,10 +15,6 @@ import { fetchAddress } from "../actions/Ethereum";
 import { Blockie } from "../components/Blockies";
 import Copy from "../components/Copy";
 import { shortDisplayAddress } from "../utils/data-helpers";
-
-type Props = {
-  primary?: boolean;
-};
 
 enum WalletMenuStates {
   OPENED,
@@ -36,7 +32,7 @@ export const CenterWalletConnectStyle = styled.section`
   }
 `;
 
-const WalletConnect: React.FunctionComponent<Props> = ({ primary = false }): JSX.Element => {
+const WalletConnect: React.FunctionComponent = (): JSX.Element => {
   const appContext = useContext(AppContext);
   const dappContext = useContext(DappContext);
   const { t } = useTranslation();
@@ -46,7 +42,7 @@ const WalletConnect: React.FunctionComponent<Props> = ({ primary = false }): JSX
   const [walletButtonState, setWalletButtonState] = useState<WalletMenuStates>(WalletMenuStates.CLOSED);
 
   if (error) {
-    appContext.toast(error.message, ToasterTypes.ERROR);
+    appContext.dispatch({ type: AppAction.TOAST, toast: ToasterTypes.ERROR, message: error.message });
   }
 
   const activateConnection = async () => {
@@ -131,15 +127,15 @@ const WalletConnect: React.FunctionComponent<Props> = ({ primary = false }): JSX
           dappContext.dispatch({ type: DappAction.ADD_USER_ADDRESS, address: state });
           break;
         case NSLookupStates.ERROR:
-          dappContext.dispatch({
-            type: DappAction.TOAST,
+          appContext.dispatch({
+            type: AppAction.TOAST,
             toast: ToasterTypes.ERROR,
             message: `${t("error")} ${state.error}`,
           });
           break;
       }
     },
-    [dappContext, t]
+    [dappContext, appContext, t]
   );
 
   const addressResolver = useCallback(() => {
