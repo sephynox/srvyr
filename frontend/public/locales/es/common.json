@@ -13,6 +13,8 @@
   "asset": "Activo",
   "email": "Email",
   "address": "Dirección",
+  "delete": "Borrar",
+  "deleted": "Borrado",
   "copy": "Copiar",
   "copied": "¡Copiado!",
   "cookie": "Cookie",
@@ -138,8 +140,9 @@
     "connect": "Conecta tu cartera para empezar."
   },
   "notification": {
-    "account_added": "Account added: ",
-    "account_switched": "Account switched: "
+    "account_added": "Cuenta añadida: ",
+    "account_removed": "Cuenta eliminada: ",
+    "account_switched": "Cuenta cambiada: "
   },
   "error": {
     "error": "error",

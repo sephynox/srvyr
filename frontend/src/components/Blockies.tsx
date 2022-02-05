@@ -1,12 +1,12 @@
 import React from "react";
 import styled from "styled-components";
-import { Spinner } from "react-bootstrap";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faExclamationTriangle, faUser } from "@fortawesome/free-solid-svg-icons";
 import makeBlockie from "ethereum-blockies-base64";
 
 type BlockiesProps = {
   addresses: string[];
+  skeleton: JSX.Element;
   states: Record<string, BlockieState>;
   enses?: Record<string, string>;
 };
@@ -14,6 +14,8 @@ type BlockiesProps = {
 type BlockieProps = {
   state: BlockieState;
   address: string;
+  skeleton: JSX.Element;
+  key?: number | string;
   ens?: string | null;
 };
 
@@ -27,13 +29,19 @@ export enum BlockieState {
 const formatAddress = (address: string) =>
   `${address.substring(0, 5)}...${address.substring(address.length - 4, address.length)}`;
 
-export const Blockie: React.FunctionComponent<BlockieProps> = ({ state, address, ens = null }): JSX.Element => {
+export const Blockie: React.FunctionComponent<BlockieProps> = ({
+  state,
+  address,
+  skeleton,
+  key,
+  ens = null,
+}): JSX.Element => {
   switch (state) {
     case BlockieState.SUCCESS:
       if (ens) {
         return (
-          <figure>
-            <img src={makeBlockie(address ?? "")} alt={address} />
+          <figure key={key}>
+            <BlockieStyle src={makeBlockie(address ?? "")} alt={address} />
             <address>{<BlockieEnsStyle>{ens ?? formatAddress(address)}</BlockieEnsStyle>}</address>
           </figure>
         );
@@ -41,17 +49,25 @@ export const Blockie: React.FunctionComponent<BlockieProps> = ({ state, address,
         return <img src={makeBlockie(address ?? "")} alt={address} />;
       }
     case BlockieState.FETCHING:
-      return <Spinner animation="border" />;
+      return <span key={key}>{skeleton}</span>;
     case BlockieState.ERROR:
-      return <FontAwesomeIcon icon={faExclamationTriangle} />;
+      return <FontAwesomeIcon key={key} icon={faExclamationTriangle} />;
     case BlockieState.EMPTY:
-      return <FontAwesomeIcon icon={faUser} />;
+      return <FontAwesomeIcon key={key} icon={faUser} />;
   }
 };
 
-export const Blockies = ({ states, addresses }: BlockiesProps): JSX.Element[] => {
-  return addresses.map((address, i) => <Blockie key={i} state={states[address]} address={address} />);
+export const Blockies = ({ states, addresses, skeleton }: BlockiesProps): JSX.Element[] => {
+  return addresses.map((address, i) => (
+    <Blockie key={i} state={states[address]} address={address} skeleton={skeleton} />
+  ));
 };
+
+const BlockieStyle = styled.img`
+  width: 100%;
+  max-width: ${(props: { width: number }) => `${props.width}px` ?? "100%"};
+  border-radius: 10%;
+`;
 
 const BlockieEnsStyle = styled.cite`
   display: block;

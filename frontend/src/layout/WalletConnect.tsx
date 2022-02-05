@@ -3,17 +3,18 @@ import { useTranslation } from "react-i18next";
 import { Button, Spinner } from "react-bootstrap";
 import styled from "styled-components";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faChevronDown, faTimes } from "@fortawesome/free-solid-svg-icons";
+import { faChevronDown, faTimes, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { useEthers } from "@usedapp/core";
 
 import { ThemeEngine } from "../styles/GlobalStyle";
 import { AppAction, AppContext } from "../App";
 import { DappAction, DappContext, getBlockieState } from "../Dapp";
 import { ToasterTypes } from "./Toaster";
+import { SkeletonProfile } from "./LoaderSkeleton";
 import { Networks, NSLookupState, NSLookupStates } from "../actions/Network";
 import { fetchAddress } from "../actions/Ethereum";
 import { Blockie } from "../components/Blockies";
-import Copy from "../components/Copy";
+import { Action, Copy } from "../components/IconButtons";
 import { shortDisplayAddress } from "../utils/data-helpers";
 
 enum WalletMenuStates {
@@ -54,6 +55,16 @@ const WalletConnect: React.FunctionComponent = (): JSX.Element => {
     deactivate();
   };
 
+  const removeAddress = (address: NSLookupState) => {
+    const index = dappContext.state.userAddresses.indexOf(address);
+
+    if (dappContext.state.userAddresses.length === 1 && address === dappContext.state.userAddresses[index]) {
+      deactivateConnection();
+    } else if (dappContext.state.userAddresses[index]) {
+      dappContext.dispatch({ type: DappAction.REMOVE_USER_ADDRESS, address: index });
+    }
+  };
+
   const setAddressCloseMenu = (lookup: NSLookupState) => {
     dappContext.dispatch({ type: DappAction.SET_ACTIVE_ADDRESS, address: lookup });
     setWalletButtonState(WalletMenuStates.CLOSED);
@@ -72,6 +83,7 @@ const WalletConnect: React.FunctionComponent = (): JSX.Element => {
       <figure>
         <BlockieStyle size={48}>
           <Blockie
+            skeleton={<SkeletonProfile />}
             state={getBlockieState(dappContext.state.activeAddress.type)}
             address={dappContext.state.activeAddress.data?.address ?? ""}
           />
@@ -90,19 +102,30 @@ const WalletConnect: React.FunctionComponent = (): JSX.Element => {
   };
 
   const getAllAccounts = (): JSX.Element[] => {
-    return dappContext.state.userAddresses.map((lookup) =>
+    return dappContext.state.userAddresses.map((lookup, i) =>
       lookup.data ? (
         <figure key={lookup.data.address}>
           <button onClick={() => setAddressCloseMenu(lookup)}>
             <BlockieStyle size={48}>
-              <Blockie state={getBlockieState(lookup.type)} address={lookup.data.address ?? ""} />
+              <Blockie
+                skeleton={<SkeletonProfile />}
+                state={getBlockieState(lookup.type)}
+                address={lookup.data.address ?? ""}
+              />
             </BlockieStyle>{" "}
             <figcaption>
               {shortDisplayAddress(lookup.data.address)}
               {lookup.data.ns && <address>{lookup.data.ns}</address>}
             </figcaption>
           </button>
-          <Copy copyText={t("copied")} text={lookup.data.address ?? ""} />
+          <Copy copyText={t("copied")} tooltip={t("copy")} text={lookup.data.address ?? ""} />
+          <Action
+            action={() => removeAddress(lookup)}
+            icon={faTrash}
+            tooltip={t("delete")}
+            tooltipHover={true}
+            margin={"0 0 0 20px"}
+          />
         </figure>
       ) : (
         <></>
@@ -124,6 +147,10 @@ const WalletConnect: React.FunctionComponent = (): JSX.Element => {
       switch (state.type) {
         case NSLookupStates.SUCCESS:
         case NSLookupStates.NO_RESOLVE:
+          if (dappContext.state.userAddresses.some((ns) => ns.data?.address === state.data.address)) {
+            return;
+          }
+
           dappContext.dispatch({ type: DappAction.ADD_USER_ADDRESS, address: state });
           break;
         case NSLookupStates.ERROR:
@@ -243,6 +270,7 @@ const AccountMenuStyle = styled.aside`
     left: 15px;
     right: 0;
     margin-top: 10px;
+    z-index: 1000;
     max-width: var(--srvyr-header-width);
 
     box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);

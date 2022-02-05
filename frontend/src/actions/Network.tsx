@@ -4,7 +4,8 @@ export enum Networks {
   ETHEREUM = "Ethereum",
 }
 
-export enum nsLookupErrors {
+export enum NSLookupErrors {
+  INVALID_ADDRESS = "The address provided is not a valid address.",
   NO_ENS_SET = "No NS set for address.",
   NO_DATA = "No lookup data provided",
 }
@@ -13,20 +14,36 @@ export enum TokenLookupErrors {
   FAILED = "Call to retrieve token information failed.",
 }
 
+export enum AssetPortfolioErrors {
+  INVALID_ADDRESS = "The address provided is not a valid address.",
+  FAILED = "Call to retrieve asset information failed.",
+}
+
 export type Address = string;
+export type Contract = Address;
+
+export type ExpiringCache = {
+  age: number;
+};
 
 export type NSLookupCache = {
   forward: Record<Address, NSLookupData>;
   reverse: Record<string, NSLookupData>;
 };
 
-export type TokenLookupCache = {
-  age: number;
+export type TokenLookupCache = ExpiringCache & {
   network: Record<Networks, TokenData[]>;
   name: Record<string, TokenData>;
   symbol: Record<string, TokenData>;
-  contract: Record<Address, TokenData>;
+  contract: Record<Contract, TokenData>;
 };
+
+export type AssetPortfolioCache = Record<
+  Address,
+  ExpiringCache & {
+    data: AssetPortfolio;
+  }
+>;
 
 export type NSLookupData = {
   network: Networks;
@@ -38,21 +55,12 @@ export type TokenData = {
   network: Networks;
   name: string;
   symbol: string;
-  contract: Address;
+  contract: Contract;
   precision: number;
+  price?: string;
 };
 
-export type AssetPriceData = TokenData & {
-  price: string;
-};
-
-export type AssetAmountData = TokenData & {
-  amount: string;
-};
-
-export type AssetPortfolio = Record<string, AssetAmountState>;
-
-export type AssetPortfolioCache = Record<string, AssetPortfolio>;
+export type AssetPortfolio = Record<Contract, string>;
 
 export enum NSLookupStates {
   EMPTY,
@@ -69,7 +77,7 @@ export enum TokenLookupStates {
   SUCCESS,
 }
 
-export enum AssetLookupStates {
+export enum AssetPortfolioStates {
   EMPTY,
   FETCHING,
   ERROR,
@@ -79,7 +87,7 @@ export enum AssetLookupStates {
 export type NSLookupState =
   | { type: typeof NSLookupStates.EMPTY; data?: NSLookupData }
   | { type: typeof NSLookupStates.FETCHING; data?: NSLookupData }
-  | { type: typeof NSLookupStates.ERROR; data?: NSLookupData; error: nsLookupErrors }
+  | { type: typeof NSLookupStates.ERROR; data?: NSLookupData; error: NSLookupErrors }
   | { type: typeof NSLookupStates.NO_RESOLVE; data: NSLookupData }
   | { type: typeof NSLookupStates.SUCCESS; data: NSLookupData };
 
@@ -89,11 +97,11 @@ export type TokenLookupState =
   | { type: typeof TokenLookupStates.ERROR; data?: TokenData[]; error: TokenLookupErrors }
   | { type: typeof TokenLookupStates.SUCCESS; data: TokenData[] };
 
-export type AssetAmountState =
-  | { type: typeof AssetLookupStates.EMPTY; data?: AssetAmountData }
-  | { type: typeof AssetLookupStates.FETCHING; data?: AssetAmountData }
-  | { type: typeof AssetLookupStates.ERROR; data?: AssetAmountData; error: nsLookupErrors }
-  | { type: typeof AssetLookupStates.SUCCESS; data: AssetAmountData };
+export type AssetPortfolioState =
+  | { type: typeof AssetPortfolioStates.EMPTY; address: string; data?: AssetPortfolio }
+  | { type: typeof AssetPortfolioStates.FETCHING; address: string; data?: AssetPortfolio }
+  | { type: typeof AssetPortfolioStates.ERROR; address: string; data?: AssetPortfolio; error: AssetPortfolioErrors }
+  | { type: typeof AssetPortfolioStates.SUCCESS; address: string; data: AssetPortfolio };
 
 export const initialNSLookupState: NSLookupState = {
   type: NSLookupStates.EMPTY,
@@ -101,6 +109,12 @@ export const initialNSLookupState: NSLookupState = {
 
 export const initialTokenLookupState: TokenLookupState = {
   type: TokenLookupStates.EMPTY,
+};
+
+export const initialAssetPortfolioState: AssetPortfolioState = {
+  type: AssetPortfolioStates.EMPTY,
+  address: "",
+  data: {},
 };
 
 export const initialNSLookupCache: NSLookupCache = {
@@ -116,6 +130,18 @@ export const initialTokenLookupCache: TokenLookupCache = {
   name: {},
   symbol: {},
   contract: {},
+};
+
+export const initialAssetPortfolioCache: AssetPortfolioCache = {};
+
+export const addAssetPortfolio = (contracts: Contract[], amounts: string[]): AssetPortfolio => {
+  const data: AssetPortfolio = {};
+
+  amounts.forEach((amount, i) => {
+    data[contracts[i]] = amount;
+  });
+
+  return data;
 };
 
 export const buildTokenCache = (data: TokenData[]): TokenLookupCache => {

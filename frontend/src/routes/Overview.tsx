@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useReducer, useRef } from "react";
+import React, { useCallback, useContext, useEffect, useReducer } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
@@ -7,38 +7,55 @@ import styled from "styled-components";
 
 import { ThemeEngine } from "../styles/GlobalStyle";
 import { Section } from "../styles/Section";
-import { DappContext, getBlockieState } from "../Dapp";
-import { AssetPortfolio, initialNSLookupState, Networks, NSLookupState } from "../actions/Network";
+import { DappAction, DappContext, getBlockieState } from "../Dapp";
+import {
+  AssetPortfolioState,
+  AssetPortfolioStates,
+  initialAssetPortfolioState,
+  initialNSLookupState,
+  Networks,
+  NSLookupState,
+  NSLookupStates,
+} from "../actions/Network";
+import { fetchBalances } from "../actions/Ethereum";
+import LoaderSkeleton, { SkeletonProfile } from "../layout/LoaderSkeleton";
 import Assets from "../components/Assets";
 import { Blockie } from "../components/Blockies";
-import Copy from "../components/Copy";
-import { shortDisplayAddress } from "../utils/data-helpers";
+import { Copy } from "../components/IconButtons";
+import { isCacheValid, shortDisplayAddress } from "../utils/data-helpers";
+import { useIsMounted } from "../utils/custom-hooks";
 
 import { BalanceCheckerContext } from "./../hardhat/SymfoniContext";
-import { ethers } from "ethers";
+
+const DEFAULT_REFRESH_INTERVAL = 60;
 
 enum OverviewAction {
   SET_ADDRESS = "SET_ADDRESS",
+  PUSH_PORTFOLIO = "PUSH_PORTFOLIO",
 }
 
-type OverviewActions = { type: OverviewAction.SET_ADDRESS; data: NSLookupState };
+type OverviewActions =
+  | { type: OverviewAction.SET_ADDRESS; lookup: NSLookupState }
+  | { type: OverviewAction.PUSH_PORTFOLIO; portfolio: AssetPortfolioState };
 
 type OverviewState = {
   addressState: NSLookupState;
-  portfolioDataState: AssetPortfolio;
+  assetPortfolioState: AssetPortfolioState;
   transactionDataState: Record<string, string>; // TODO
 };
 
 const initialOverviewState = {
   addressState: initialNSLookupState,
-  portfolioDataState: {},
+  assetPortfolioState: initialAssetPortfolioState,
   transactionDataState: {},
 };
 
 const overviewReducer = (state: OverviewState, action: OverviewActions): OverviewState => {
   switch (action.type) {
     case OverviewAction.SET_ADDRESS:
-      return { ...state, addressState: action.data };
+      return { ...state, addressState: action.lookup };
+    case OverviewAction.PUSH_PORTFOLIO:
+      return { ...state, assetPortfolioState: { ...state.assetPortfolioState, ...action.portfolio } };
   }
 };
 
@@ -49,58 +66,124 @@ const Overview = (): JSX.Element => {
   const props = useParams();
   const navigate = useNavigate();
 
-  const isActive = useRef(true);
+  const isMounted = useIsMounted();
   const [state, dispatch] = useReducer(overviewReducer, initialOverviewState);
 
-  const setAddressStateAssist = (state: NSLookupState) => {
-    if (isActive) {
-      dispatch({ type: OverviewAction.SET_ADDRESS, data: state });
+  const navigateInvalid = useCallback(() => {
+    if (dappContext.state.activeAddress && dappContext.state.activeAddress.data) {
+      navigate(`${dappContext.state.activeAddress.data.address}`, { replace: true });
+      return false;
+    } else {
+      navigate("/");
+      return false;
     }
+  }, [dappContext.state.activeAddress, navigate]);
+
+  const checkValidAsset = useCallback((): boolean => {
+    if (!props.account) {
+      navigateInvalid();
+      return false;
+    } else {
+      return true;
+    }
+  }, [navigateInvalid, props.account]);
+
+  const getDisplayEnsName = (): JSX.Element => {
+    return state.addressState.data ? (
+      <address>
+        {state.addressState.data?.ns
+          ? state.addressState.data.ns
+          : shortDisplayAddress(state.addressState.data?.address)}
+      </address>
+    ) : (
+      <LoaderSkeleton type="Bars" />
+    );
   };
 
-  const checkProps = useCallback(() => {
-    if (!props.account) {
-      if (dappContext.state.activeAddress && dappContext.state.activeAddress.data) {
-        navigate(`${dappContext.state.activeAddress.data.address}`, { replace: true });
-      }
-    } else {
-      dappContext.resolveEthereumAddress(props.account)(setAddressStateAssist);
-    }
-  }, [props.account, dappContext, navigate]);
+  const getDisplayAddress = (): JSX.Element => {
+    return state.addressState.data ? (
+      <>
+        <address>
+          {shortDisplayAddress(state.addressState.data?.address)}
+          <Copy
+            copyText={t("copied")}
+            tooltip={t("copy")}
+            margin={"0 0 0 20px"}
+            text={state.addressState.data?.address ?? ""}
+          />
+        </address>
+      </>
+    ) : (
+      <LoaderSkeleton type="Bars" />
+    );
+  };
 
-  const checkEtherBalances = useCallback(async () => {
-    const networkContracts = dappContext.state.tokenLookupCache.network[Networks.ETHEREUM];
+  const resolveAddressBalances = useCallback(
+    async (nsLookupState: NSLookupState) => {
+      const networkContracts = dappContext.state.tokenLookupCache.network[Networks.ETHEREUM];
 
-    if (Object.entries(networkContracts).length > 0) {
-      const contractAddresses = networkContracts.map((record) => record.contract);
+      switch (nsLookupState.type) {
+        case NSLookupStates.NO_RESOLVE:
+        case NSLookupStates.SUCCESS:
+          const contractAddresses = networkContracts.map((record) => record.contract);
 
-      if (balanceChecker.instance && state.addressState.data && state.addressState.data.address) {
-        try {
-          balanceChecker.instance
-            .attach("0x99dbe4aea58e518c50a1c04ae9b48c9f6354612f") // FIXME
-            .tokenBalances([state.addressState.data.address], contractAddresses)
-            .then((balances) => {
-              balances.forEach((balance, i) => {
-                console.log(i, ethers.utils.formatUnits(balance, 18));
-              });
+          if (nsLookupState.data.address && balanceChecker.instance) {
+            await fetchBalances(
+              nsLookupState.data.address,
+              contractAddresses,
+              balanceChecker.instance,
+              dappContext.state.addressPortfolioCache,
+              DEFAULT_REFRESH_INTERVAL
+            )((response: AssetPortfolioState) => {
+              if (isMounted.current) {
+                dispatch({ type: OverviewAction.PUSH_PORTFOLIO, portfolio: response });
+
+                if (response.type === AssetPortfolioStates.SUCCESS) {
+                  const cache = dappContext.state.addressPortfolioCache[response.address];
+
+                  if (!cache || !isCacheValid(cache.age, DEFAULT_REFRESH_INTERVAL)) {
+                    dappContext.dispatch({
+                      type: DappAction.ADD_CACHE_PORTFOLIO,
+                      address: response.address,
+                      portfolio: response.data,
+                    });
+                  }
+                }
+              }
+            }).catch((e) => {
+              navigateInvalid();
             });
-        } catch (e) {
-          console.log(e);
-        }
+          }
+          break;
       }
+    },
+    [balanceChecker.instance, dappContext, isMounted, navigateInvalid]
+  );
+
+  const loadAssetState = useCallback(async () => {
+    if (props.account && state.addressState.type === NSLookupStates.EMPTY) {
+      await dappContext
+        .resolveAddress(
+          props.account,
+          Networks.ETHEREUM
+        )((lookup) => {
+          isMounted.current && dispatch({ type: OverviewAction.SET_ADDRESS, lookup: lookup });
+        })
+        .catch((e) => {
+          navigateInvalid();
+        });
     }
-  }, [state.addressState.data, dappContext.state.tokenLookupCache.network, balanceChecker.instance]);
+  }, [dappContext, isMounted, props.account, state.addressState.type, navigateInvalid]);
 
   useEffect(() => {
-    checkProps();
-    // if ether address
-    checkEtherBalances();
-    // checkCardanoBalances(); etc.
+    if (checkValidAsset()) {
+      loadAssetState();
+    }
+  }, [checkValidAsset, loadAssetState]);
 
-    return () => {
-      isActive.current = false;
-    };
-  }, [checkProps, checkEtherBalances]);
+  useEffect(() => {
+    resolveAddressBalances(state.addressState);
+  }, [state.addressState, resolveAddressBalances]);
 
   return (
     <>
@@ -117,22 +200,14 @@ const Overview = (): JSX.Element => {
             <figure>
               <BlockieStyle size={100}>
                 <Blockie
+                  skeleton={<SkeletonProfile />}
                   state={getBlockieState(state.addressState.type)}
                   address={state.addressState.data?.address ?? ""}
                 />
               </BlockieStyle>{" "}
               <figcaption>
-                <h2>
-                  <address>
-                    {state.addressState.data?.ns
-                      ? state.addressState.data.ns
-                      : shortDisplayAddress(state.addressState.data?.address)}
-                  </address>
-                </h2>
-                <h3>
-                  {shortDisplayAddress(state.addressState.data?.address)}{" "}
-                  <Copy copyText={t("copied")} text={state.addressState.data?.address ?? ""} />
-                </h3>
+                <h2>{getDisplayEnsName()}</h2>
+                <h3>{getDisplayAddress()}</h3>
                 <em>Active Since: TODO</em>
               </figcaption>
             </figure>

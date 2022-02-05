@@ -16,6 +16,7 @@ import ToggleTheme from "./ToggleTheme";
 import { NavState } from "./NavToggle";
 import Gastimate from "../components/Gastimate";
 import { Blockie } from "../components/Blockies";
+import { SkeletonProfile } from "./LoaderSkeleton";
 
 type Props = {
   links: NavBlock[];
@@ -72,7 +73,11 @@ const DappNavigation: React.FunctionComponent<Props> = ({ links, navState }): JS
       primary &&
       primary.data && (
         <HeaderBlockStyle size={24}>
-          <Blockie state={getBlockieState(primary.type)} address={primary.data?.address ?? ""} />
+          <Blockie
+            skeleton={<SkeletonProfile />}
+            state={getBlockieState(primary.type)}
+            address={primary.data?.address ?? ""}
+          />
         </HeaderBlockStyle>
       )
     );

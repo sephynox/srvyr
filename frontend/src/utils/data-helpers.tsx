@@ -44,6 +44,14 @@ export const isLightTheme = (): boolean => {
   return window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
 };
 
+export const cacheValid = <T,>(cache: T, age: number, ttl: number): T | undefined => {
+  return age > Date.now() - ttl ? cache : undefined;
+};
+
+export const isCacheValid = (age: number, ttl: number): boolean => {
+  return age > Date.now() - ttl;
+};
+
 export const shortDisplayAddress = (address?: string | null) => {
   if (!!address) {
     return `${address.substring(0, 5)}...${address.substring(address.length - 4, address.length)}`;

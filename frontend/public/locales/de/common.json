@@ -13,6 +13,8 @@
   "asset": "Vermögenswert",
   "email": "Email",
   "address": "Die Adresse",
+  "delete": "Löschen",
+  "deleted": "Gelöscht",
   "copy": "Kopieren",
   "copied": "Kopiert!",
   "cookie": "Cookie",
@@ -138,8 +140,9 @@
     "connect": "Schließen Sie Ihr Portemonnaie an, um loszulegen."
   },
   "notification": {
-    "account_added": "Account added: ",
-    "account_switched": "Account switched: "
+    "account_added": "Konto hinzugefügt: ",
+    "account_removed": "Konto entfernt: ",
+    "account_switched": "Konto geändert: "
   },
   "error": {
     "error": "error",

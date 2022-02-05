@@ -1,15 +1,13 @@
-import React, { createContext, Dispatch, useCallback, useEffect, useLayoutEffect, useReducer } from "react";
+import React, { createContext, Dispatch, useCallback, useEffect, useReducer } from "react";
 import { Outlet } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
 import { ThemeProvider } from "styled-components";
 
-import * as Constants from "./Constants";
-import { i18nNamespace } from "./services/i18n";
-import { supportedLanguages } from "./Data";
-import { externalLocaleReducer, initialExternalLocaleState } from "./actions/ExternalLocale";
-import { GlobalStyle } from "./styles/GlobalStyle";
+import "react-loading-skeleton/dist/skeleton.css";
 import "./scss/custom.scss";
+import * as Constants from "./Constants";
+import { GlobalStyle } from "./styles/GlobalStyle";
 import Toaster, { addToast as toast, ToasterTypes } from "./layout/Toaster";
 import { NavState } from "./layout/NavToggle";
 import Overlay, { OverlayState } from "./layout/Overlay";
@@ -106,10 +104,6 @@ const App: React.FunctionComponent = (): JSX.Element => {
   const { i18n } = useTranslation();
 
   const [state, dispatch] = useReducer(appReducer, { ...initialAppState, ...hardStateResets });
-  const [externalLocaleState] = useReducer(externalLocaleReducer, {
-    ...initialExternalLocaleState,
-    ...JSON.parse(localStorage.getItem("externalLocaleState") ?? "{}"),
-  });
 
   const getTheme = (theme: Themes): Theme => {
     return availableThemes[theme];
@@ -135,16 +129,6 @@ const App: React.FunctionComponent = (): JSX.Element => {
       dispatch({ type: InternalAppAction.PRUNE_TOAST_QUEUE });
     }
   }, [state.toastQueue]);
-
-  useLayoutEffect(() => {
-    localStorage.setItem("externalLocaleState", JSON.stringify(externalLocaleState));
-
-    supportedLanguages.forEach((lang) => {
-      if (externalLocaleState.data && externalLocaleState.data[lang] !== undefined) {
-        i18n.addResourceBundle(lang, i18nNamespace.EXTERNAL, externalLocaleState.data[lang]);
-      }
-    });
-  }, [i18n, externalLocaleState]);
 
   useEffect(() => {
     if (state.eventLog.length > 0) {

@@ -39,6 +39,8 @@ export type Theme = {
   success: string;
   successText: string;
   successBorder: string;
+  loaderBase: string;
+  loaderHightlight: string;
   images: Record<string, string>;
 };
 
@@ -70,6 +72,8 @@ export const lightTheme: Theme = {
   success: "rgb(19, 162, 7)",
   successText: "rgb(19, 162, 7)",
   successBorder: "rgb(19, 162, 7)",
+  loaderBase: "rgb(229, 229, 229)",
+  loaderHightlight: "rgb(201, 201, 201)",
   images: {
     logo: LogoLight,
   },
@@ -103,6 +107,8 @@ export const darkTheme: Theme = {
   success: "rgb(32, 253, 13)",
   successText: "rgb(32, 253, 13)",
   successBorder: "rgb(32, 253, 13)",
+  loaderBase: "rgb(32, 32, 32)",
+  loaderHightlight: "rgb(68, 68, 68)",
   images: {
     logo: LogoDark,
   },

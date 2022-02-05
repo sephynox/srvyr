@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-const usePrevious = <T,>(value: T) => {
+export const usePrevious = <T,>(value: T) => {
   const ref = useRef<T>();
 
   useEffect(() => {
@@ -10,4 +10,15 @@ const usePrevious = <T,>(value: T) => {
   return ref.current;
 };
 
-export default usePrevious;
+export const useIsMounted = () => {
+  const isMounted = useRef(false);
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
+  return isMounted;
+};

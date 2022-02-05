@@ -13,6 +13,8 @@
   "asset": "Asset",
   "email": "Email",
   "address": "Address",
+  "delete": "Delete",
+  "deleted": "Deleted",
   "copy": "Copy",
   "copied": "Copied!",
   "cookie": "Cookie",
@@ -139,6 +141,7 @@
   },
   "notification": {
     "account_added": "Account added: ",
+    "account_removed": "Account removed: ",
     "account_switched": "Account switched: "
   },
   "error": {
