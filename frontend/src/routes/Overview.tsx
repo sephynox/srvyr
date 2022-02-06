@@ -9,6 +9,7 @@ import { ThemeEngine } from "../styles/GlobalStyle";
 import { Section } from "../styles/Section";
 import { DappAction, DappContext, getBlockieState } from "../Dapp";
 import {
+  AssetPortfolio,
   AssetPortfolioState,
   AssetPortfolioStates,
   initialAssetPortfolioState,
@@ -16,10 +17,11 @@ import {
   Networks,
   NSLookupState,
   NSLookupStates,
+  TokenData,
 } from "../actions/Network";
 import { fetchBalances } from "../actions/Ethereum";
 import LoaderSkeleton, { SkeletonProfile } from "../layout/LoaderSkeleton";
-import Assets from "../components/Assets";
+import Assets, { Asset } from "../components/Assets";
 import { Blockie } from "../components/Blockies";
 import { Copy } from "../components/IconButtons";
 import { isCacheValid, shortDisplayAddress } from "../utils/data-helpers";
@@ -32,14 +34,17 @@ const DEFAULT_REFRESH_INTERVAL = 60;
 enum OverviewAction {
   SET_ADDRESS = "SET_ADDRESS",
   PUSH_PORTFOLIO = "PUSH_PORTFOLIO",
+  BUILD_ASSET_TABLE_DATA = "BUILD_ASSET_TABLE_DATA",
 }
 
 type OverviewActions =
   | { type: OverviewAction.SET_ADDRESS; lookup: NSLookupState }
-  | { type: OverviewAction.PUSH_PORTFOLIO; portfolio: AssetPortfolioState };
+  | { type: OverviewAction.PUSH_PORTFOLIO; portfolio: AssetPortfolioState }
+  | { type: OverviewAction.BUILD_ASSET_TABLE_DATA; tokens: TokenData[]; portfolio: AssetPortfolio };
 
 type OverviewState = {
   addressState: NSLookupState;
+  assetTableData: Asset[];
   assetPortfolioState: AssetPortfolioState;
   transactionDataState: Record<string, string>; // TODO
 };
@@ -47,7 +52,12 @@ type OverviewState = {
 const initialOverviewState = {
   addressState: initialNSLookupState,
   assetPortfolioState: initialAssetPortfolioState,
+  assetTableData: [],
   transactionDataState: {},
+};
+
+const buildTableData = (tokens: TokenData[], portfolio: AssetPortfolio): Asset[] => {
+  return Array.from(new Set(tokens.map((token) => ({ ...token, balance: portfolio[token.contract] }))));
 };
 
 const overviewReducer = (state: OverviewState, action: OverviewActions): OverviewState => {
@@ -56,6 +66,8 @@ const overviewReducer = (state: OverviewState, action: OverviewActions): Overvie
       return { ...state, addressState: action.lookup };
     case OverviewAction.PUSH_PORTFOLIO:
       return { ...state, assetPortfolioState: { ...state.assetPortfolioState, ...action.portfolio } };
+    case OverviewAction.BUILD_ASSET_TABLE_DATA:
+      return { ...state, assetTableData: buildTableData(action.tokens, action.portfolio) };
   }
 };
 
@@ -138,6 +150,14 @@ const Overview = (): JSX.Element => {
               if (isMounted.current) {
                 dispatch({ type: OverviewAction.PUSH_PORTFOLIO, portfolio: response });
 
+                if (response.data) {
+                  dispatch({
+                    type: OverviewAction.BUILD_ASSET_TABLE_DATA,
+                    tokens: networkContracts,
+                    portfolio: response.data,
+                  });
+                }
+
                 if (response.type === AssetPortfolioStates.SUCCESS) {
                   const cache = dappContext.state.addressPortfolioCache[response.address];
 
@@ -161,7 +181,10 @@ const Overview = (): JSX.Element => {
   );
 
   const loadAssetState = useCallback(async () => {
-    if (props.account && state.addressState.type === NSLookupStates.EMPTY) {
+    if (
+      (props.account && state.addressState.type === NSLookupStates.EMPTY) ||
+      (props.account && state.addressState.data && props.account !== state.addressState.data?.address)
+    ) {
       await dappContext
         .resolveAddress(
           props.account,
@@ -173,7 +196,7 @@ const Overview = (): JSX.Element => {
           navigateInvalid();
         });
     }
-  }, [dappContext, isMounted, props.account, state.addressState.type, navigateInvalid]);
+  }, [props.account, state.addressState.type, state.addressState.data, dappContext, isMounted, navigateInvalid]);
 
   useEffect(() => {
     if (checkValidAsset()) {
@@ -221,7 +244,7 @@ const Overview = (): JSX.Element => {
               <h2>{t("portfolio")}</h2>
             </Accordion.Header>
             <Accordion.Body>
-              <Assets data={[]} />
+              <Assets data={state.assetTableData} />
             </Accordion.Body>
           </Accordion.Item>
           <Accordion.Item eventKey="1">

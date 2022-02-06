@@ -127,11 +127,11 @@ $font-size-base: 1rem;
 .table {
   --bs-table-bg: transparent;
   --bs-table-accent-bg: transparent;
-  --bs-table-striped-color: #212529;
+  --bs-table-striped-color: ${(props: ThemeEngine) => props.theme.textAlt};
   --bs-table-striped-bg: rgba(0, 0, 0, 0.05);
-  --bs-table-active-color: #212529;
+  --bs-table-active-color: ${(props: ThemeEngine) => props.theme.infoText};
   --bs-table-active-bg: rgba(0, 0, 0, 0.1);
-  --bs-table-hover-color: #212529;
+  --bs-table-hover-color: ${(props: ThemeEngine) => props.theme.infoText};
   --bs-table-hover-bg: rgba(0, 0, 0, 0.075);
   color: ${(props: ThemeEngine) => props.theme.text};
   border-color: ${(props: ThemeEngine) => props.theme.backgroundDelta};

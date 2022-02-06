@@ -24,12 +24,6 @@ const Gastimate: React.FunctionComponent<Props> = ({ provider, format = "gwei", 
   const isActive = useRef(true);
   const [gasPrice, dispatchGasPrice] = useReducer(gasePriceReducer, initiaGasPriceState);
 
-  const dispatchAssist = (state: GasPriceState): void => {
-    if (isActive.current) {
-      dispatchGasPrice(state);
-    }
-  };
-
   const displayGasPrice = (state: GasPriceState): JSX.Element => {
     switch (state.type) {
       case GasPriceStates.EMPTY:
@@ -52,7 +46,14 @@ const Gastimate: React.FunctionComponent<Props> = ({ provider, format = "gwei", 
   };
 
   const gasResolver = useCallback(async () => {
-    fetchGasPrice(format, provider)(dispatchAssist);
+    fetchGasPrice(
+      format,
+      provider
+    )((state: GasPriceState): void => {
+      if (isActive.current) {
+        dispatchGasPrice(state);
+      }
+    });
   }, [format, provider]);
 
   useEffect(() => {

@@ -6,15 +6,17 @@ type Props = {
   data: Asset[];
 };
 
-export type Asset = {
+export interface Asset {
   name: string;
   symbol: string;
-  balance?: number;
-  price?: number;
-  value?: number;
-};
+  contract: string;
+  balance?: string;
+  price?: string;
+  value?: string;
+}
 
 const Assets: React.FunctionComponent<Props> = ({ data }): JSX.Element => {
+  const mobileCols = ["name", "balance"];
   const memoizedData = useMemo(() => data, [data]);
   const memoizedColumns: readonly Column<Asset>[] = useMemo(
     () => [
@@ -45,14 +47,19 @@ const Assets: React.FunctionComponent<Props> = ({ data }): JSX.Element => {
 
   // Render the UI for your table
   return (
-    <BTable striped bordered hover size="sm" {...getTableProps()}>
+    <BTable striped hover responsive size="sm" {...getTableProps()}>
       <thead>
         {headerGroups.map((headerGroup) => (
           // eslint-disable-next-line react/jsx-key
           <tr {...headerGroup.getHeaderGroupProps()}>
             {headerGroup.headers.map((column) => (
               // eslint-disable-next-line react/jsx-key
-              <th {...column.getHeaderProps()}>{column.render("Header")}</th>
+              <th
+                {...column.getHeaderProps()}
+                className={!mobileCols.includes(column.id) ? "d-none d-sm-none d-md-table-cell" : ""}
+              >
+                {column.render("Header")}
+              </th>
             ))}
           </tr>
         ))}
@@ -64,8 +71,15 @@ const Assets: React.FunctionComponent<Props> = ({ data }): JSX.Element => {
             // eslint-disable-next-line react/jsx-key
             <tr {...row.getRowProps()}>
               {row.cells.map((cell) => {
-                // eslint-disable-next-line react/jsx-key
-                return <td {...cell.getCellProps()}>{cell.render("Cell")}</td>;
+                return (
+                  // eslint-disable-next-line react/jsx-key
+                  <td
+                    {...cell.getCellProps()}
+                    className={!mobileCols.includes(cell.column.id) ? "d-none d-sm-none d-md-table-cell" : ""}
+                  >
+                    {cell.render("Cell")}
+                  </td>
+                );
               })}
             </tr>
           );

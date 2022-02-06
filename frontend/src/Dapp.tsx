@@ -366,6 +366,7 @@ export default Dapp;
 
 const MainStyle = styled.main`
   flex-basis: 100%;
+  max-width: 100vw;
   height: calc(100vh - var(--srvyr-footer-height));
   left: 0;
   background-size: cover;
