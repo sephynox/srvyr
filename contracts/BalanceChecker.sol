@@ -11,6 +11,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 
+import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+
 /// @title A simple balance checker for standardized assets.
 /// @author Tanveer Wahid
 /// @notice Based on a similar contract by @wbobeirne
@@ -43,7 +45,8 @@ contract BalanceChecker is ERC165 {
         return
             interfaceID == this.supportsInterface.selector ||
             interfaceID ==
-            this.tokenBalance.selector ^
+            this.getLatestPrice.selector ^
+                this.tokenBalance.selector ^
                 this.tokenBalances.selector ^
                 this.tokenBalanceWithInterfaces.selector ^
                 this.tokenBalancesWithInterfaces.selector;
@@ -126,6 +129,23 @@ contract BalanceChecker is ERC165 {
         }
 
         return addrBalances;
+    }
+
+    /// Return the latest price data for a feed.
+    /// @param feedAddress The feed contract address to use.
+    function getLatestPrice(address feedAddress)
+        public
+        view
+        returns (
+            uint80 roundID,
+            int256 price,
+            uint256 startedAt,
+            uint256 timeStamp,
+            uint80 answeredInRound
+        )
+    {
+        AggregatorV3Interface priceFeed = AggregatorV3Interface(feedAddress);
+        return priceFeed.latestRoundData();
     }
 
     function _tokenBalance(

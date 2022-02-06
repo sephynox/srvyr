@@ -6,6 +6,8 @@ import React, { useEffect, useState } from "react";
 import Web3Modal, { IProviderOptions } from "web3modal";
 import { BalanceChecker } from "./typechain/BalanceChecker";
 import { BalanceChecker__factory } from "./typechain/factories/BalanceChecker__factory";
+import { PriceConsumerV3 } from "./typechain/PriceConsumerV3";
+import { PriceConsumerV3__factory } from "./typechain/factories/PriceConsumerV3__factory";
 import { TestNFT } from "./typechain/TestNFT";
 import { TestNFT__factory } from "./typechain/factories/TestNFT__factory";
 import { TestToken } from "./typechain/TestToken";
@@ -34,6 +36,7 @@ const defaultSymfoniContext: SymfoniContextInterface = {
 };
 export const SymfoniContext = React.createContext<SymfoniContextInterface>(defaultSymfoniContext);
 export const BalanceCheckerContext = React.createContext<SymfoniBalanceChecker>(emptyContract);
+export const PriceConsumerV3Context = React.createContext<SymfoniPriceConsumerV3>(emptyContract);
 export const TestNFTContext = React.createContext<SymfoniTestNFT>(emptyContract);
 export const TestTokenContext = React.createContext<SymfoniTestToken>(emptyContract);
 export const ERC20Context = React.createContext<SymfoniERC20>(emptyContract);
@@ -56,6 +59,11 @@ export interface SymfoniProps {
 export interface SymfoniBalanceChecker {
     instance?: BalanceChecker;
     factory?: BalanceChecker__factory;
+}
+
+export interface SymfoniPriceConsumerV3 {
+    instance?: PriceConsumerV3;
+    factory?: PriceConsumerV3__factory;
 }
 
 export interface SymfoniTestNFT {
@@ -93,6 +101,7 @@ export const Symfoni: React.FC<SymfoniProps> = ({
     const [fallbackProvider] = useState<string | undefined>(undefined);
     const [providerPriority, setProviderPriority] = useState<string[]>(["web3modal", "hardhat"]);
     const [BalanceChecker, setBalanceChecker] = useState<SymfoniBalanceChecker>(emptyContract);
+    const [PriceConsumerV3, setPriceConsumerV3] = useState<SymfoniPriceConsumerV3>(emptyContract);
     const [TestNFT, setTestNFT] = useState<SymfoniTestNFT>(emptyContract);
     const [TestToken, setTestToken] = useState<SymfoniTestToken>(emptyContract);
     const [ERC20, setERC20] = useState<SymfoniERC20>(emptyContract);
@@ -177,6 +186,7 @@ export const Symfoni: React.FC<SymfoniProps> = ({
             }
             const finishWithContracts = (text: string) => {
                 setBalanceChecker(getBalanceChecker(_provider, _signer))
+                setPriceConsumerV3(getPriceConsumerV3(_provider, _signer))
                 setTestNFT(getTestNFT(_provider, _signer))
                 setTestToken(getTestToken(_provider, _signer))
                 setERC20(getERC20(_provider, _signer))
@@ -214,6 +224,15 @@ export const Symfoni: React.FC<SymfoniProps> = ({
         const contract: SymfoniBalanceChecker = {
             instance: instance,
             factory: _signer ? new BalanceChecker__factory(_signer) : undefined,
+        }
+        return contract
+    }
+        ;
+    const getPriceConsumerV3 = (_provider: providers.Provider, _signer?: Signer) => {
+        let instance = _signer ? PriceConsumerV3__factory.connect(ethers.constants.AddressZero, _signer) : PriceConsumerV3__factory.connect(ethers.constants.AddressZero, _provider)
+        const contract: SymfoniPriceConsumerV3 = {
+            instance: instance,
+            factory: _signer ? new PriceConsumerV3__factory(_signer) : undefined,
         }
         return contract
     }
@@ -269,24 +288,26 @@ export const Symfoni: React.FC<SymfoniProps> = ({
                 <SignerContext.Provider value={[signer, setSigner]}>
                     <CurrentAddressContext.Provider value={[currentAddress, setCurrentAddress]}>
                         <BalanceCheckerContext.Provider value={BalanceChecker}>
-                            <TestNFTContext.Provider value={TestNFT}>
-                                <TestTokenContext.Provider value={TestToken}>
-                                    <ERC20Context.Provider value={ERC20}>
-                                        <ERC721Context.Provider value={ERC721}>
-                                            {showLoading && loading ?
-                                                props.loadingComponent
-                                                    ? props.loadingComponent
-                                                    : <div>
-                                                        {messages.map((msg, i) => (
-                                                            <p key={i}>{msg}</p>
-                                                        ))}
-                                                    </div>
-                                                : props.children
-                                            }
-                                        </ERC721Context.Provider >
-                                    </ERC20Context.Provider >
-                                </TestTokenContext.Provider >
-                            </TestNFTContext.Provider >
+                            <PriceConsumerV3Context.Provider value={PriceConsumerV3}>
+                                <TestNFTContext.Provider value={TestNFT}>
+                                    <TestTokenContext.Provider value={TestToken}>
+                                        <ERC20Context.Provider value={ERC20}>
+                                            <ERC721Context.Provider value={ERC721}>
+                                                {showLoading && loading ?
+                                                    props.loadingComponent
+                                                        ? props.loadingComponent
+                                                        : <div>
+                                                            {messages.map((msg, i) => (
+                                                                <p key={i}>{msg}</p>
+                                                            ))}
+                                                        </div>
+                                                    : props.children
+                                                }
+                                            </ERC721Context.Provider >
+                                        </ERC20Context.Provider >
+                                    </TestTokenContext.Provider >
+                                </TestNFTContext.Provider >
+                            </PriceConsumerV3Context.Provider >
                         </BalanceCheckerContext.Provider >
                     </CurrentAddressContext.Provider>
                 </SignerContext.Provider>

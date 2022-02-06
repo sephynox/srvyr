@@ -19,6 +19,10 @@ export enum AssetPortfolioErrors {
   FAILED = "Call to retrieve asset information failed.",
 }
 
+export enum PriceLookupErrors {
+  FAILED = "Call to retrieve token pricing data failed.",
+}
+
 export type Address = string;
 export type Contract = Address;
 
@@ -38,6 +42,13 @@ export type TokenLookupCache = ExpiringCache & {
   contract: Record<Contract, TokenData>;
 };
 
+export type PriceLookupCache = Record<
+  Contract,
+  ExpiringCache & {
+    data: PriceData;
+  }
+>;
+
 export type AssetPortfolioCache = Record<
   Address,
   ExpiringCache & {
@@ -51,13 +62,25 @@ export type NSLookupData = {
   address?: Address | null | undefined;
 };
 
+export type TokenFeed = {
+  contract: Contract;
+  precision: number;
+};
+
 export type TokenData = {
   network: Networks;
   name: string;
-  symbol: string;
+  ticker: string;
   contract: Contract;
   precision: number;
   price?: string;
+  feeds?: Record<string, TokenFeed>;
+};
+
+export type PriceData = {
+  epoch: string;
+  price: string;
+  timestamp: number;
 };
 
 export type AssetPortfolio = Record<Contract, string>;
@@ -84,6 +107,13 @@ export enum AssetPortfolioStates {
   SUCCESS,
 }
 
+export enum PriceLookupStates {
+  EMPTY,
+  FETCHING,
+  ERROR,
+  SUCCESS,
+}
+
 export type NSLookupState =
   | { type: typeof NSLookupStates.EMPTY; data?: NSLookupData }
   | { type: typeof NSLookupStates.FETCHING; data?: NSLookupData }
@@ -103,6 +133,12 @@ export type AssetPortfolioState =
   | { type: typeof AssetPortfolioStates.ERROR; address: string; data?: AssetPortfolio; error: AssetPortfolioErrors }
   | { type: typeof AssetPortfolioStates.SUCCESS; address: string; data: AssetPortfolio };
 
+export type PriceLookupState =
+  | { type: typeof PriceLookupStates.EMPTY; data?: PriceData }
+  | { type: typeof PriceLookupStates.FETCHING; data?: PriceData }
+  | { type: typeof PriceLookupStates.ERROR; data?: PriceData; error: TokenLookupErrors }
+  | { type: typeof PriceLookupStates.SUCCESS; data: PriceData };
+
 export const initialNSLookupState: NSLookupState = {
   type: NSLookupStates.EMPTY,
 };
@@ -115,6 +151,10 @@ export const initialAssetPortfolioState: AssetPortfolioState = {
   type: AssetPortfolioStates.EMPTY,
   address: "",
   data: {},
+};
+
+export const initialPriceLookupState: PriceLookupState = {
+  type: PriceLookupStates.EMPTY,
 };
 
 export const initialNSLookupCache: NSLookupCache = {
@@ -133,6 +173,7 @@ export const initialTokenLookupCache: TokenLookupCache = {
 };
 
 export const initialAssetPortfolioCache: AssetPortfolioCache = {};
+export const initialPriceLookupCache: PriceLookupCache = {};
 
 export const addAssetPortfolio = (contracts: Contract[], amounts: string[]): AssetPortfolio => {
   const data: AssetPortfolio = {};
@@ -152,7 +193,7 @@ export const buildTokenCache = (data: TokenData[]): TokenLookupCache => {
       new Set([tokenLookupData, ...cache.network[tokenLookupData.network]])
     );
     cache.name[tokenLookupData.name] = tokenLookupData;
-    cache.symbol[tokenLookupData.symbol] = tokenLookupData;
+    cache.symbol[tokenLookupData.ticker] = tokenLookupData;
     cache.contract[tokenLookupData.contract] = tokenLookupData;
   });
 

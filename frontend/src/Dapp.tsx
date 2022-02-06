@@ -2,14 +2,14 @@ import React, { createContext, Dispatch, useCallback, useContext, useEffect, use
 import { Outlet } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
-import { DAppProvider } from "@usedapp/core";
+import { Currency, DAppProvider } from "@usedapp/core";
 import { ethers } from "ethers";
 //import WalletConnect from "@walletconnect/web3-provider";
 //import WalletLink from "walletlink";
 //import Web3Modal from "web3modal";
 
 import * as Constants from "./Constants";
-import { dappNavLinks } from "./Data";
+import { dappNavLinks, systemCurrencies } from "./Data";
 import { AppAction, AppContext } from "./App";
 import Header from "./layout/Header";
 import DappNavigation from "./layout/DappNavigation";
@@ -34,12 +34,16 @@ import {
   initialAssetPortfolioCache,
   AssetPortfolio,
   Address,
+  PriceLookupState,
+  PriceLookupCache,
+  initialPriceLookupCache,
+  initialPriceLookupState,
 } from "./actions/Network";
 import { EthereumTokenStandards, fetchAddress as fetchEtherAddress, fetchTokens } from "./actions/Ethereum";
 import { Symfoni } from "./hardhat/SymfoniContext";
 import { BlockieState } from "./components/Blockies";
-import { isCacheValid, shortDisplayAddress } from "./utils/data-helpers";
-import { useIsMounted, usePrevious } from "./utils/custom-hooks";
+import { isCacheValid, localStoreOr, shortDisplayAddress } from "./utils/data-helpers";
+import { useIsMounted } from "./utils/custom-hooks";
 
 declare global {
   interface Window {
@@ -65,6 +69,7 @@ export const getBlockieState = (state: NSLookupStates) => {
 
 export enum DappAction {
   DISCONNECT = "DISCONNECT",
+  SET_CURRENCY = "SET_CURRENCY",
   SET_ACTIVE_ADDRESS = "SET_ACTIVE_ADDRESS",
   ADD_USER_ADDRESS = "ADD_USER_ADDRESS",
   REMOVE_USER_ADDRESS = "REMOVE_USER_ADDRESS",
@@ -74,62 +79,98 @@ export enum DappAction {
 
 enum InternalDappAction {
   RESOLVE_TOKENS = "RESOLVE_TOKENS",
+  RESOLVE_TOKEN_PRICES = "RESOLVE_TOKEN_PRICES",
+}
+
+enum DappEvent {
+  LISTENING = "LISTENING",
+  SYN_ADDED_ADDRESS = "SYN_ADDED_ADDRESS",
+  SYN_REMOVED_ADDRESS = "SYN_REMOVED_ADDRESS",
+  SYN_SWITCHED_PRIMARY_ADDRESS = "SYN_SWITCHED_PRIMARY_ADDRESS",
+  SYN_DISCONNECTED = "SYN_DISCONNECTED",
   ACK_ADDED_ADDRESS = "ACK_ADDED_ADDRESS",
   ACK_REMOVED_ADDRESS = "ACK_REMOVED_ADDRESS",
-  ACK_DISCONNECT_ALERTED = "ACK_DISCONNECT_ALERTED",
+  ACK_SWITCHED_PRIMARY_ADDRESS = "ACK_SWITCHED_PRIMARY_ADDRESS",
+  ACK_DISCONNECTED = "ACK_DISCONNECTED",
 }
+
+export type DappEvents =
+  | { type: DappEvent.LISTENING }
+  | { type: DappEvent.SYN_ADDED_ADDRESS; address: NSLookupState }
+  | { type: DappEvent.SYN_REMOVED_ADDRESS; address: NSLookupState }
+  | { type: DappEvent.SYN_SWITCHED_PRIMARY_ADDRESS; curr: NSLookupState; prev: NSLookupState }
+  | { type: DappEvent.SYN_DISCONNECTED };
 
 export type DappActions =
   | { type: DappAction.DISCONNECT }
+  | { type: DappAction.SET_CURRENCY; currency: Currency }
   | { type: DappAction.SET_ACTIVE_ADDRESS; address: NSLookupState }
   | { type: DappAction.ADD_USER_ADDRESS; address: NSLookupState }
   | { type: DappAction.REMOVE_USER_ADDRESS; address: number }
   | { type: DappAction.ADD_CACHE_ADDRESS; address: NSLookupState }
   | { type: DappAction.ADD_CACHE_PORTFOLIO; address: Address; portfolio: AssetPortfolio }
   | { type: InternalDappAction.RESOLVE_TOKENS; tokens: TokenLookupState }
-  | { type: InternalDappAction.ACK_ADDED_ADDRESS }
-  | { type: InternalDappAction.ACK_REMOVED_ADDRESS }
-  | { type: InternalDappAction.ACK_DISCONNECT_ALERTED };
+  | { type: InternalDappAction.RESOLVE_TOKEN_PRICES }
+  | { type: DappEvent.ACK_ADDED_ADDRESS }
+  | { type: DappEvent.ACK_REMOVED_ADDRESS }
+  | { type: DappEvent.ACK_SWITCHED_PRIMARY_ADDRESS }
+  | { type: DappEvent.ACK_DISCONNECTED };
 
 type DappState = {
-  alertDisconnected: boolean;
+  eventHost: DappEvents;
+  userCurrency: Currency;
   userAddresses: NSLookupState[];
-  removedAddress: NSLookupState | undefined;
-  addedAddress: NSLookupState | undefined;
   activeAddress: NSLookupState;
   tokenLookupState: TokenLookupState;
   tokenLookupCache: TokenLookupCache;
+  priceLookupState: PriceLookupState;
+  priceLookupCache: PriceLookupCache;
   nsLookupCache: NSLookupCache;
   addressPortfolioCache: AssetPortfolioCache;
 };
 
-const hardStateResets = {
-  alertDisconnected: false,
-  addedAddress: undefined,
-  tokenLookupState: initialTokenLookupState,
+const initialEventHost: DappEvents = {
+  type: DappEvent.LISTENING,
 };
 
-const initialDappState: DappState = JSON.parse(localStorage.getItem("dappState") ?? "null") || {
+const hardStateResets = {
+  eventHost: initialEventHost,
+  tokenLookupState: initialTokenLookupState,
+  priceLookupState: initialPriceLookupState,
+};
+
+const initialDappState: DappState = localStoreOr("dappState", {
   userAddresses: [],
+  userCurrency: systemCurrencies[Constants.DEFAULT_CURRENCY],
   addressPortfolioCache: initialAssetPortfolioCache,
   activeAddress: initialNSLookupState,
   tokenLookupCache: initialTokenLookupCache,
+  priceLookupCache: initialPriceLookupCache,
   nsLookupCache: initialNSLookupCache,
   ...hardStateResets,
-};
+});
 
 const dappReducer = (state: DappState, action: DappActions): DappState => {
+  let event: DappEvents;
+
   switch (action.type) {
     case DappAction.DISCONNECT:
-      return { ...state, alertDisconnected: true, activeAddress: initialNSLookupState, userAddresses: [] };
+      const disconnect = { activeAddress: initialNSLookupState, userAddresses: [] };
+      event = { type: DappEvent.SYN_DISCONNECTED };
+      return { ...state, ...disconnect, eventHost: event };
+    case DappAction.SET_CURRENCY:
+      return { ...state, userCurrency: action.currency };
     case DappAction.SET_ACTIVE_ADDRESS:
-      return { ...state, activeAddress: action.address };
+      event = { type: DappEvent.SYN_SWITCHED_PRIMARY_ADDRESS, curr: action.address, prev: state.activeAddress };
+      return { ...state, eventHost: event, activeAddress: action.address };
     case DappAction.ADD_USER_ADDRESS:
       const addresses = Array.from(new Set([action.address, ...state.userAddresses]));
-      return { ...state, addedAddress: action.address, userAddresses: addresses };
+      event = { type: DappEvent.SYN_ADDED_ADDRESS, address: action.address };
+      return { ...state, eventHost: event, userAddresses: addresses };
     case DappAction.REMOVE_USER_ADDRESS:
       const prunedAddress = state.userAddresses.splice(action.address, 1).pop();
-      return { ...state, removedAddress: prunedAddress, userAddresses: state.userAddresses };
+      event = { type: DappEvent.SYN_ADDED_ADDRESS, address: prunedAddress ?? initialNSLookupState };
+      return { ...state, eventHost: event, userAddresses: state.userAddresses };
     case DappAction.ADD_CACHE_ADDRESS:
       switch (action.address.type) {
         case NSLookupStates.SUCCESS:
@@ -157,12 +198,13 @@ const dappReducer = (state: DappState, action: DappActions): DappState => {
         default:
           return state;
       }
-    case InternalDappAction.ACK_ADDED_ADDRESS:
-      return { ...state, addedAddress: undefined };
-    case InternalDappAction.ACK_REMOVED_ADDRESS:
-      return { ...state, removedAddress: undefined };
-    case InternalDappAction.ACK_DISCONNECT_ALERTED:
-      return { ...state, alertDisconnected: false };
+    case InternalDappAction.RESOLVE_TOKEN_PRICES:
+      return { ...state };
+    case DappEvent.ACK_ADDED_ADDRESS:
+    case DappEvent.ACK_REMOVED_ADDRESS:
+    case DappEvent.ACK_SWITCHED_PRIMARY_ADDRESS:
+    case DappEvent.ACK_DISCONNECTED:
+      return { ...state, eventHost: { type: DappEvent.LISTENING } };
   }
 };
 
@@ -265,8 +307,6 @@ const Dapp: React.FunctionComponent = (): JSX.Element => {
     resolveAddress,
   };
 
-  const prevAddress = usePrevious(state.activeAddress);
-
   const setFirstAddressActive = useCallback(() => {
     if (!state.activeAddress.data && state.userAddresses.length > 0) {
       dispatch({
@@ -276,74 +316,75 @@ const Dapp: React.FunctionComponent = (): JSX.Element => {
     }
   }, [state.activeAddress.data, state.userAddresses]);
 
-  const notifyAccountChanges = useCallback(() => {
-    if (state.addedAddress?.data) {
-      dispatch({ type: DappAction.ADD_CACHE_ADDRESS, address: state.addedAddress });
-      dispatch({ type: InternalDappAction.ACK_ADDED_ADDRESS });
-      appContext.dispatch({
-        type: AppAction.TOAST,
-        message: `${t("notification.account_added")}${shortDisplayAddress(state.addedAddress.data.address)}`,
-        toast: ToasterTypes.SUCCESS,
-      });
-    } else if (state.removedAddress) {
-      dispatch({ type: InternalDappAction.ACK_REMOVED_ADDRESS });
-      appContext.dispatch({
-        type: AppAction.TOAST,
-        message: `${t("notification.account_removed")}${shortDisplayAddress(state.removedAddress.data?.address)}`,
-        toast: ToasterTypes.ERROR,
-      });
-
-      if (state.removedAddress.data === state.activeAddress.data && state.userAddresses.length > 0) {
-        dispatch({
-          type: DappAction.SET_ACTIVE_ADDRESS,
-          address: state.userAddresses[state.userAddresses.length - 1],
-        });
-      }
-    } else if (state.alertDisconnected) {
-      dispatch({ type: InternalDappAction.ACK_DISCONNECT_ALERTED });
-      appContext.dispatch({
-        type: AppAction.TOAST,
-        message: t("disconnected"),
-        toast: ToasterTypes.ERROR,
-      });
-    } else if (prevAddress?.data?.address && state.activeAddress.data?.address !== prevAddress?.data?.address) {
-      appContext.dispatch({
-        type: AppAction.TOAST,
-        message: `${t("notification.account_switched")}${shortDisplayAddress(state.activeAddress.data?.address)}`,
-        toast: ToasterTypes.SUCCESS,
-      });
-    }
-  }, [
-    t,
-    appContext,
-    prevAddress,
-    state.addedAddress,
-    state.removedAddress,
-    state.alertDisconnected,
-    state.activeAddress,
-    state.userAddresses,
-  ]);
-
   const resolveTokens = useCallback(async () => {
-    if (
-      state.tokenLookupState.type !== TokenLookupStates.FETCHING &&
-      !isCacheValid(state.tokenLookupCache.age, Constants.DEFAULT_REFRESH_INTERVAL)
-    ) {
-      await fetchTokens(EthereumTokenStandards.ERC20.toString())((state: TokenLookupState) => {
-        isMounted.current && dispatch({ type: InternalDappAction.RESOLVE_TOKENS, tokens: state });
-      });
+    switch (state.tokenLookupState.type) {
+      case TokenLookupStates.FETCHING:
+      case TokenLookupStates.ERROR:
+        break;
+      case TokenLookupStates.SUCCESS:
+        break;
+      case TokenLookupStates.EMPTY:
+        if (!isCacheValid(state.tokenLookupCache.age, Constants.DEFAULT_REFRESH_INTERVAL)) {
+          await fetchTokens(EthereumTokenStandards.ERC20)((state: TokenLookupState) => {
+            isMounted.current && dispatch({ type: InternalDappAction.RESOLVE_TOKENS, tokens: state });
+          });
+        }
     }
   }, [state.tokenLookupState.type, state.tokenLookupCache, isMounted]);
+
+  const listenEventBus = useCallback(async () => {
+    switch (state.eventHost.type) {
+      case DappEvent.SYN_ADDED_ADDRESS:
+        dispatch({ type: DappAction.ADD_CACHE_ADDRESS, address: state.eventHost.address });
+        appContext.dispatch({
+          type: AppAction.TOAST,
+          message: `${t("notification.account_added")}${shortDisplayAddress(state.eventHost.address.data?.address)}`,
+          toast: ToasterTypes.SUCCESS,
+        });
+        return dispatch({ type: DappEvent.ACK_ADDED_ADDRESS });
+      case DappEvent.SYN_REMOVED_ADDRESS:
+        appContext.dispatch({
+          type: AppAction.TOAST,
+          message: `${t("notification.account_removed")}${shortDisplayAddress(state.eventHost.address.data?.address)}`,
+          toast: ToasterTypes.ERROR,
+        });
+
+        if (state.eventHost.address.data === state.activeAddress.data && state.userAddresses.length > 0) {
+          dispatch({
+            type: DappAction.SET_ACTIVE_ADDRESS,
+            address: state.userAddresses[state.userAddresses.length - 1],
+          });
+        }
+        return dispatch({ type: DappEvent.ACK_REMOVED_ADDRESS });
+      case DappEvent.SYN_SWITCHED_PRIMARY_ADDRESS:
+        appContext.dispatch({
+          type: AppAction.TOAST,
+          message: `${t("notification.account_switched")}${shortDisplayAddress(state.eventHost.curr.data?.address)}`,
+          toast: ToasterTypes.SUCCESS,
+        });
+        return dispatch({ type: DappEvent.ACK_SWITCHED_PRIMARY_ADDRESS });
+      case DappEvent.SYN_DISCONNECTED:
+        appContext.dispatch({
+          type: AppAction.TOAST,
+          message: t("disconnected"),
+          toast: ToasterTypes.ERROR,
+        });
+        return dispatch({ type: DappEvent.ACK_DISCONNECTED });
+      case DappEvent.LISTENING:
+      default:
+        return;
+    }
+  }, [appContext, state.activeAddress.data, state.eventHost, state.userAddresses, t]);
 
   useEffect(() => {
     setFirstAddressActive();
     resolveTokens();
-  }, [setFirstAddressActive, resolveTokens, notifyAccountChanges]);
+    listenEventBus();
+  }, [setFirstAddressActive, resolveTokens, listenEventBus]);
 
   useEffect(() => {
-    notifyAccountChanges();
     localStorage.setItem("dappState", JSON.stringify(state));
-  }, [state, notifyAccountChanges]);
+  }, [state]);
 
   return (
     <DAppProvider config={Constants.DAPP_CONFIG}>

@@ -4,19 +4,21 @@ import { Spinner } from "react-bootstrap";
 import styled from "styled-components";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
+import { systemCurrencies, systemLanguages } from "../Data";
 import { ThemeEngine } from "../styles/GlobalStyle";
 import { AppAction, AppContext } from "../App";
-import { DappContext, getBlockieState } from "../Dapp";
+import { DappAction, DappContext, getBlockieState } from "../Dapp";
 import { NSLookupStates } from "../actions/Network";
-import LanguageSelector from "./LanguageSelector";
 import Logo from "./Logo";
+import { SkeletonProfile } from "./LoaderSkeleton";
 import { NavBlock } from "./Navigation";
 import WalletConnect from "./WalletConnect";
 import ToggleTheme from "./ToggleTheme";
 import { NavState } from "./NavToggle";
+import LanguageSelector from "../components/LanguageSelector";
+import CurrencySelector from "../components/CurrencySelector";
 import Gastimate from "../components/Gastimate";
 import { Blockie } from "../components/Blockies";
-import { SkeletonProfile } from "./LoaderSkeleton";
 
 type Props = {
   links: NavBlock[];
@@ -97,7 +99,13 @@ const DappNavigation: React.FunctionComponent<Props> = ({ links, navState }): JS
         <section>
           <LanguageSelector
             language={appContext.state.language}
+            supportedLangs={systemLanguages}
             setLanguage={(language) => appContext.dispatch({ type: AppAction.SET_LANGUAGE, language })}
+          />
+          <CurrencySelector
+            currency={dappContext.state.userCurrency}
+            supportedCurrencies={systemCurrencies}
+            setCurrency={(currency) => dappContext.dispatch({ type: DappAction.SET_CURRENCY, currency })}
           />
           <em>v{process.env.REACT_APP_BUILD_VERSION}</em>
         </section>

@@ -8,7 +8,7 @@ export const SITE_DOMAIN = "srvyr.eth";
 export const SITE_REPOSITORY = "https://github.com/sephynox/srvyr";
 
 export const DEFAULT_LANG = "en-US";
-export const DEFAULT_CURRENCY = "USD";
+export const DEFAULT_CURRENCY = "usd";
 export const DEFAULT_PRICE_PLACES = 2;
 export const DEFAULT_PERCENT_PLACES = 2;
 export const DEFAULT_PRICE_PERCENTAGE_CHANGES = "24h,7d,30d,1y";

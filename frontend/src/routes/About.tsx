@@ -8,7 +8,7 @@ import { AppContext } from "../App";
 import Logo from "../layout/Logo";
 import { Section } from "../styles/Section";
 import Quote from "../components/Quote";
-import Theme from "../tools/Themes";
+import Theme from "../styles/Themes";
 
 const Overview = (): JSX.Element => {
   const appContext = useContext(AppContext);
@@ -40,7 +40,9 @@ const Overview = (): JSX.Element => {
           <header>
             <h1>{t("about")}</h1>
           </header>
-          <Logo mode={appContext.state.theme} />
+          <LogoStyle>
+            <Logo mode={appContext.state.theme} />
+          </LogoStyle>
           <Quote
             quote={"Something profound"}
             author="Someone profound"
@@ -60,6 +62,13 @@ const Overview = (): JSX.Element => {
 };
 
 export default Overview;
+
+const LogoStyle = styled.figure`
+  width: 100%;
+  text-align: center;
+  margin-top: 4em;
+  margin-bottom: 4em;
+`;
 
 const AboutStyle = styled.article`
   & p {

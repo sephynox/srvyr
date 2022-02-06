@@ -59,3 +59,7 @@ export const shortDisplayAddress = (address?: string | null) => {
     return "";
   }
 };
+
+export const localStoreOr = <T,>(key: string, fallback: T): T => {
+  return JSON.parse(localStorage.getItem(key) ?? "null") || fallback;
+};

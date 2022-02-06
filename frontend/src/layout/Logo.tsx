@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Link } from "react-router-dom";
 
-import { availableThemes, Themes } from "../tools/Themes";
+import { availableThemes, Themes } from "../styles/Themes";
 
 type Props = {
   mode: Themes;

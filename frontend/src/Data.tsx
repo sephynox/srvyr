@@ -1,8 +1,10 @@
+import { Currency, FiatCurrency } from "@usedapp/core";
 import { faHome, faArchway, faAddressCard } from "@fortawesome/free-solid-svg-icons";
 
 import Home from "./routes/Home";
 import Overview from "./routes/Overview";
 import About from "./routes/About";
+
 import { NavBlock } from "./layout/Navigation";
 import { SocialBlock } from "./components/SocialLinks";
 
@@ -77,4 +79,11 @@ export const systemLanguages: Record<string, string> = {
   de: "Deutsch",
 };
 
+export const systemCurrencies: Record<string, Currency> = {
+  usd: new FiatCurrency("US Dollar", "USD", 2),
+  eur: new FiatCurrency("Euro", "EUR", 2),
+  jpy: new FiatCurrency("Japanese Yen", "JPY", 2),
+};
+
 export const supportedLanguages: Array<keyof typeof systemLanguages> = ["en-US", "es", "de"];
+export const supportedCurrencies: Array<keyof typeof systemCurrencies> = ["usd", "eur", "jpy"];

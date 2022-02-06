@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
+import React, { useCallback, useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, Spinner } from "react-bootstrap";
 import styled from "styled-components";
@@ -16,6 +16,7 @@ import { fetchAddress } from "../actions/Ethereum";
 import { Blockie } from "../components/Blockies";
 import { Action, Copy } from "../components/IconButtons";
 import { shortDisplayAddress } from "../utils/data-helpers";
+import { useIsMounted } from "../utils/custom-hooks";
 
 enum WalletMenuStates {
   OPENED,
@@ -39,7 +40,7 @@ const WalletConnect: React.FunctionComponent = (): JSX.Element => {
   const { t } = useTranslation();
   const { activateBrowserWallet, account, error, active, deactivate } = useEthers();
 
-  const isActive = useRef(true);
+  const isMounted = useIsMounted();
   const [walletButtonState, setWalletButtonState] = useState<WalletMenuStates>(WalletMenuStates.CLOSED);
 
   if (error) {
@@ -96,7 +97,7 @@ const WalletConnect: React.FunctionComponent = (): JSX.Element => {
       </figure>
     ) : (
       <Spinner animation="border" role="status">
-        <span className="visually-hidden">Loading...</span>
+        <span className="visually-hidden">{t("loading")}</span>
       </Spinner>
     );
   };
@@ -144,25 +145,27 @@ const WalletConnect: React.FunctionComponent = (): JSX.Element => {
 
   const addUserAddress = useCallback(
     (state: NSLookupState) => {
-      switch (state.type) {
-        case NSLookupStates.SUCCESS:
-        case NSLookupStates.NO_RESOLVE:
-          if (dappContext.state.userAddresses.some((ns) => ns.data?.address === state.data.address)) {
-            return;
-          }
+      if (isMounted) {
+        switch (state.type) {
+          case NSLookupStates.SUCCESS:
+          case NSLookupStates.NO_RESOLVE:
+            if (dappContext.state.userAddresses.some((ns) => ns.data?.address === state.data.address)) {
+              return;
+            }
 
-          dappContext.dispatch({ type: DappAction.ADD_USER_ADDRESS, address: state });
-          break;
-        case NSLookupStates.ERROR:
-          appContext.dispatch({
-            type: AppAction.TOAST,
-            toast: ToasterTypes.ERROR,
-            message: `${t("error")} ${state.error}`,
-          });
-          break;
+            dappContext.dispatch({ type: DappAction.ADD_USER_ADDRESS, address: state });
+            break;
+          case NSLookupStates.ERROR:
+            appContext.dispatch({
+              type: AppAction.TOAST,
+              toast: ToasterTypes.ERROR,
+              message: `${t("error")} ${state.error}`,
+            });
+            break;
+        }
       }
     },
-    [dappContext, appContext, t]
+    [isMounted, dappContext, appContext, t]
   );
 
   const addressResolver = useCallback(() => {
@@ -174,12 +177,6 @@ const WalletConnect: React.FunctionComponent = (): JSX.Element => {
   useEffect(() => {
     addressResolver();
   }, [addressResolver]);
-
-  useEffect(() => {
-    return () => {
-      isActive.current = false;
-    };
-  }, [dappContext, isActive]);
 
   switch (dappContext.state.activeAddress.type) {
     case NSLookupStates.EMPTY:

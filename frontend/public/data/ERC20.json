@@ -2,22 +2,54 @@
   {
     "network": "Ethereum",
     "name": "TestToken",
-    "symbol": "TST",
+    "ticker": "TST",
     "contract": "0x5feaebfb4439f3516c74939a9d04e95afe82c4ae",
     "precision": 18
   },
   {
     "network": "Ethereum",
     "name": "Ethereum",
-    "symbol": "ETH",
+    "ticker": "ETH",
     "contract": "0x0000000000000000000000000000000000000000",
-    "precision": 18
+    "precision": 18,
+    "feeds": {
+      "usd": {
+        "contract": "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
+        "precision": 8
+      }
+    }
   },
   {
     "network": "Ethereum",
     "name": "USD Coin",
-    "symbol": "USDC",
+    "ticker": "USDC",
     "contract": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+    "precision": 18,
+    "feeds": {
+      "usd": {
+        "contract": "0x9211c6b3BF41A10F78539810Cf5c64e1BB78Ec60",
+        "precision": 8
+      }
+    }
+  },
+  {
+    "network": "Ethereum",
+    "name": "Tether",
+    "ticker": "USDT",
+    "contract": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+    "precision": 8,
+    "feeds": {
+      "usd": {
+        "contract": "0x3E7d1eAB13ad0104d2750B8863b489D65364e32D",
+        "precision": 8
+      }
+    }
+  },
+  {
+    "network": "Ethereum",
+    "name": "Quant",
+    "ticker": "QNT",
+    "contract": "0x4a220e6096b25eadb88358cb44068a3248254675",
     "precision": 18
   }
 ]

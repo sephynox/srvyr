@@ -78,6 +78,8 @@
   "crypto": "Cryptocurrency",
   "cryptocurrencies": "Cryptocurrencies",
   "bitcoin": "Bitcoin",
+  "balance": "Balance",
+  "value": "Value",
   "price": "Price",
   "purchase": "Purchase",
   "volume": "Volume",

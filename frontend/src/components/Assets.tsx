@@ -1,6 +1,8 @@
 import React, { useMemo } from "react";
 import BTable from "react-bootstrap/Table";
-import { useTable, Column } from "react-table";
+import { useTranslation } from "react-i18next";
+import { useTable, Column, HeaderGroup, ColumnInstance } from "react-table";
+import styled from "styled-components";
 
 type Props = {
   data: Asset[];
@@ -8,36 +10,51 @@ type Props = {
 
 export interface Asset {
   name: string;
-  symbol: string;
+  ticker: string;
   contract: string;
   balance?: string;
   price?: string;
   value?: string;
+  icon?: JSX.Element;
 }
 
 const Assets: React.FunctionComponent<Props> = ({ data }): JSX.Element => {
-  const mobileCols = ["name", "balance"];
+  const { t } = useTranslation();
+
+  const headerAsset = t("asset");
+  const headerPrice = t("price");
+  const headerBalance = t("balance");
+  const headerValue = t("value");
+
   const memoizedData = useMemo(() => data, [data]);
   const memoizedColumns: readonly Column<Asset>[] = useMemo(
     () => [
       {
-        Header: "Asset",
+        Header: "",
+        accessor: "icon",
+        className: "compact",
+      },
+      {
+        Header: headerAsset,
         accessor: "name",
       },
       {
-        Header: "Price",
+        Header: headerPrice,
         accessor: "price",
+        className: "right d-none d-sm-none d-md-table-cell",
       },
       {
-        Header: "Balance",
+        Header: headerBalance,
         accessor: "balance",
+        className: "right",
       },
       {
-        Header: "Value",
+        Header: headerValue,
         accessor: "value",
+        className: "right d-none d-sm-none d-md-table-cell",
       },
     ],
-    []
+    [headerAsset, headerBalance, headerPrice, headerValue]
   );
 
   const { getTableProps, headerGroups, rows, prepareRow } = useTable({
@@ -47,16 +64,19 @@ const Assets: React.FunctionComponent<Props> = ({ data }): JSX.Element => {
 
   // Render the UI for your table
   return (
-    <BTable striped hover responsive size="sm" {...getTableProps()}>
+    <BTableStyle striped hover size="sm" {...getTableProps()}>
       <thead>
         {headerGroups.map((headerGroup) => (
           // eslint-disable-next-line react/jsx-key
           <tr {...headerGroup.getHeaderGroupProps()}>
-            {headerGroup.headers.map((column) => (
+            {headerGroup.headers.map((column: HeaderGroup<Asset> & { className?: string }) => (
               // eslint-disable-next-line react/jsx-key
               <th
-                {...column.getHeaderProps()}
-                className={!mobileCols.includes(column.id) ? "d-none d-sm-none d-md-table-cell" : ""}
+                {...column.getHeaderProps([
+                  {
+                    className: column.className,
+                  },
+                ])}
               >
                 {column.render("Header")}
               </th>
@@ -71,22 +91,43 @@ const Assets: React.FunctionComponent<Props> = ({ data }): JSX.Element => {
             // eslint-disable-next-line react/jsx-key
             <tr {...row.getRowProps()}>
               {row.cells.map((cell) => {
+                const col: ColumnInstance<Asset> & { className?: string } = cell.column;
                 return (
                   // eslint-disable-next-line react/jsx-key
-                  <td
-                    {...cell.getCellProps()}
-                    className={!mobileCols.includes(cell.column.id) ? "d-none d-sm-none d-md-table-cell" : ""}
-                  >
-                    {cell.render("Cell")}
-                  </td>
+                  <td {...cell.getCellProps([{ className: col.className }])}>{cell.render("Cell")}</td>
                 );
               })}
             </tr>
           );
         })}
       </tbody>
-    </BTable>
+    </BTableStyle>
   );
 };
 
 export default Assets;
+
+const BTableStyle = styled(BTable)`
+  table-layout: fixed;
+
+  & td {
+    max-width: 100%;
+    padding-bottom: 15px;
+    padding-top: 15px;
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+  }
+
+  & .right {
+    text-align: right;
+  }
+
+  & .compact {
+    width: 50px;
+    white-space: nowrap;
+    padding-right: 10px;
+  }
+`;

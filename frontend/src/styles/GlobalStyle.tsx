@@ -1,6 +1,6 @@
 import { createGlobalStyle } from "styled-components";
 import "react-toastify/dist/ReactToastify.css";
-import Theme from "../tools/Themes";
+import Theme from "./Themes";
 
 // Hack
 export type ThemeEngine = {
@@ -127,7 +127,7 @@ $font-size-base: 1rem;
 .table {
   --bs-table-bg: transparent;
   --bs-table-accent-bg: transparent;
-  --bs-table-striped-color: ${(props: ThemeEngine) => props.theme.textAlt};
+  --bs-table-striped-color: ${(props: ThemeEngine) => props.theme.text};
   --bs-table-striped-bg: rgba(0, 0, 0, 0.05);
   --bs-table-active-color: ${(props: ThemeEngine) => props.theme.infoText};
   --bs-table-active-bg: rgba(0, 0, 0, 0.1);

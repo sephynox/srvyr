@@ -1,7 +1,7 @@
 import React from "react";
 import styled from "styled-components";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faExclamationTriangle, faUser } from "@fortawesome/free-solid-svg-icons";
+import { faExclamationTriangle } from "@fortawesome/free-solid-svg-icons";
 import makeBlockie from "ethereum-blockies-base64";
 
 type BlockiesProps = {
@@ -48,12 +48,11 @@ export const Blockie: React.FunctionComponent<BlockieProps> = ({
       } else {
         return <img src={makeBlockie(address ?? "")} alt={address} />;
       }
+    case BlockieState.EMPTY:
     case BlockieState.FETCHING:
       return <span key={key}>{skeleton}</span>;
     case BlockieState.ERROR:
       return <FontAwesomeIcon key={key} icon={faExclamationTriangle} />;
-    case BlockieState.EMPTY:
-      return <FontAwesomeIcon key={key} icon={faUser} />;
   }
 };
 

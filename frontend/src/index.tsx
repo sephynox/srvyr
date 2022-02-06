@@ -1,7 +1,8 @@
 import React, { Suspense } from "react";
-import { I18nextProvider } from "react-i18next";
 import ReactDOM from "react-dom";
 import { BrowserRouter } from "react-router-dom";
+import { I18nextProvider } from "react-i18next";
+import { HelmetProvider } from "react-helmet-async";
 import { Spinner } from "react-bootstrap";
 
 import i18next from "./services/i18n";
@@ -12,7 +13,9 @@ ReactDOM.render(
   <Suspense fallback={<Spinner animation="border" role="status" />}>
     <BrowserRouter>
       <I18nextProvider i18n={i18next}>
-        <Routes />
+        <HelmetProvider>
+          <Routes />
+        </HelmetProvider>
       </I18nextProvider>
     </BrowserRouter>
   </Suspense>,
