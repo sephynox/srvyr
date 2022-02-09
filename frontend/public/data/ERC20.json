@@ -24,13 +24,7 @@
     "name": "USD Coin",
     "ticker": "USDC",
     "contract": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-    "precision": 18,
-    "feeds": {
-      "usd": {
-        "contract": "0x9211c6b3BF41A10F78539810Cf5c64e1BB78Ec60",
-        "precision": 8
-      }
-    }
+    "precision": 18
   },
   {
     "network": "Ethereum",

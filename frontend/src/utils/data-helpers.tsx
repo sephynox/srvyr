@@ -63,3 +63,18 @@ export const shortDisplayAddress = (address?: string | null) => {
 export const localStoreOr = <T,>(key: string, fallback: T): T => {
   return JSON.parse(localStorage.getItem(key) ?? "null") || fallback;
 };
+
+export const createEnumChecker = <T extends string, TEnumValue extends string>(enumVariable: {
+  [key in T]: TEnumValue;
+}) => {
+  const enumValues = Object.values(enumVariable);
+  return (value: string): value is TEnumValue => enumValues.includes(value);
+};
+
+export const formatNumber = (n: number | bigint, lang: string, r?: number, opts?: Intl.NumberFormatOptions): string => {
+  return `${Intl.NumberFormat(lang, { maximumFractionDigits: r ?? 16, ...opts }).format(n)}`;
+};
+
+export const formatPrice = (n: number | bigint, r = 2, lang: string, currency: string): string => {
+  return formatNumber(n, lang, r, { style: "currency", currency: currency });
+};

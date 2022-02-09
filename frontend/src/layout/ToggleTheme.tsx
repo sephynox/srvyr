@@ -1,10 +1,10 @@
 import React from "react";
+import { Button } from "react-bootstrap";
 import styled from "styled-components";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faMoon, faSun } from "@fortawesome/free-solid-svg-icons";
 
 import { Themes } from "../styles/Themes";
-import { Button } from "react-bootstrap";
 
 type Props = {
   theme: Themes;

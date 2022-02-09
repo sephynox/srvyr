@@ -7,7 +7,7 @@ import { ethers, waffle } from "hardhat";
 describe("BalanceChecker", function () {
   const TEST_TOKEN_BALANCE = 1000000;
   const ETHER_ADDRESS = "0x0000000000000000000000000000000000000000";
-  const CHAINLINK_FEED = "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419";
+  const CHAINLINK_ETHER_FEED = "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419";
 
   let balanceChecker: Contract;
   let testToken: Contract;
@@ -72,12 +72,21 @@ describe("BalanceChecker", function () {
   });
 
   it("Should return a price feed for a specified feed", async () => {
-    const [roundID, price, startedAt, timeStamp, answeredInRound] = await balanceChecker.getLatestPrice(CHAINLINK_FEED);
+    const [roundID, price, startedAt, timeStamp, answeredInRound] = await balanceChecker.getLatestPrice(
+      CHAINLINK_ETHER_FEED
+    );
 
     expect(roundID).to.not.be.empty;
     expect(price).to.not.be.empty;
     expect(startedAt).to.not.be.empty;
     expect(timeStamp).to.not.be.empty;
     expect(answeredInRound).to.not.be.empty;
+  });
+
+  it("Should return prices for multiple feeds", async () => {
+    const prices = await balanceChecker.getLatestPrices([CHAINLINK_ETHER_FEED, CHAINLINK_ETHER_FEED]);
+
+    expect(prices[0]).to.not.be.empty;
+    expect(prices[1]).to.not.be.empty;
   });
 });

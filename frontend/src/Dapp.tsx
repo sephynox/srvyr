@@ -22,11 +22,8 @@ import {
   NSLookupState,
   NSLookupStates,
   TokenData,
-  TokenLookupState,
-  initialTokenLookupState,
   TokenLookupCache,
   initialTokenLookupCache,
-  TokenLookupStates,
   buildTokenCache,
   Networks,
   addAddressCache,
@@ -34,10 +31,13 @@ import {
   initialAssetPortfolioCache,
   AssetPortfolio,
   Address,
-  PriceLookupState,
   PriceLookupCache,
   initialPriceLookupCache,
-  initialPriceLookupState,
+  FetchState,
+  PriceData,
+  FetchStates,
+  buildPriceCache,
+  Contract,
 } from "./actions/Network";
 import { EthereumTokenStandards, fetchAddress as fetchEtherAddress, fetchTokens } from "./actions/Ethereum";
 import { Symfoni } from "./hardhat/SymfoniContext";
@@ -73,13 +73,14 @@ export enum DappAction {
   SET_ACTIVE_ADDRESS = "SET_ACTIVE_ADDRESS",
   ADD_USER_ADDRESS = "ADD_USER_ADDRESS",
   REMOVE_USER_ADDRESS = "REMOVE_USER_ADDRESS",
+  RESOLVE_TOKEN_PRICES = "RESOLVE_TOKEN_PRICES",
   ADD_CACHE_ADDRESS = "ADD_CACHE_ADDRESS",
   ADD_CACHE_PORTFOLIO = "ADD_CACHE_PORTFOLIO",
+  ADD_CACHE_PRICE = "ADD_CACHE_PRICE",
 }
 
 enum InternalDappAction {
   RESOLVE_TOKENS = "RESOLVE_TOKENS",
-  RESOLVE_TOKEN_PRICES = "RESOLVE_TOKEN_PRICES",
 }
 
 enum DappEvent {
@@ -109,8 +110,8 @@ export type DappActions =
   | { type: DappAction.REMOVE_USER_ADDRESS; address: number }
   | { type: DappAction.ADD_CACHE_ADDRESS; address: NSLookupState }
   | { type: DappAction.ADD_CACHE_PORTFOLIO; address: Address; portfolio: AssetPortfolio }
-  | { type: InternalDappAction.RESOLVE_TOKENS; tokens: TokenLookupState }
-  | { type: InternalDappAction.RESOLVE_TOKEN_PRICES }
+  | { type: DappAction.RESOLVE_TOKEN_PRICES; prices: FetchState<Record<Contract, PriceData>> }
+  | { type: InternalDappAction.RESOLVE_TOKENS; tokens: FetchState<TokenData[]> }
   | { type: DappEvent.ACK_ADDED_ADDRESS }
   | { type: DappEvent.ACK_REMOVED_ADDRESS }
   | { type: DappEvent.ACK_SWITCHED_PRIMARY_ADDRESS }
@@ -121,9 +122,9 @@ type DappState = {
   userCurrency: Currency;
   userAddresses: NSLookupState[];
   activeAddress: NSLookupState;
-  tokenLookupState: TokenLookupState;
+  tokenLookupState: FetchState<TokenData[]>;
   tokenLookupCache: TokenLookupCache;
-  priceLookupState: PriceLookupState;
+  priceLookupState: FetchState<Record<Contract, PriceData>>;
   priceLookupCache: PriceLookupCache;
   nsLookupCache: NSLookupCache;
   addressPortfolioCache: AssetPortfolioCache;
@@ -131,6 +132,14 @@ type DappState = {
 
 const initialEventHost: DappEvents = {
   type: DappEvent.LISTENING,
+};
+
+const initialPriceLookupState: FetchState<Record<Contract, PriceData>> = {
+  type: FetchStates.EMPTY,
+};
+
+const initialTokenLookupState: FetchState<TokenData[]> = {
+  type: FetchStates.EMPTY,
 };
 
 const hardStateResets = {
@@ -184,22 +193,32 @@ const dappReducer = (state: DappState, action: DappActions): DappState => {
           return state;
       }
     case DappAction.ADD_CACHE_PORTFOLIO:
-      const cache = { [action.address]: { age: Date.now(), data: action.portfolio } };
-      return { ...state, addressPortfolioCache: { ...state.addressPortfolioCache, ...cache } };
-    case InternalDappAction.RESOLVE_TOKENS:
-      switch (action.tokens.type) {
-        case TokenLookupStates.FETCHING:
-        case TokenLookupStates.ERROR:
-          return { ...state, tokenLookupState: action.tokens };
-        case TokenLookupStates.SUCCESS:
-          const cache = buildTokenCache(action.tokens.data);
-          return { ...state, tokenLookupState: action.tokens, tokenLookupCache: cache };
-        case TokenLookupStates.EMPTY:
+      const portfolioCache = { [action.address]: { age: Date.now(), data: action.portfolio } };
+      return { ...state, addressPortfolioCache: { ...state.addressPortfolioCache, ...portfolioCache } };
+    case DappAction.RESOLVE_TOKEN_PRICES:
+      switch (action.prices.type) {
+        case FetchStates.FETCHING:
+        case FetchStates.ERROR:
+          return { ...state, priceLookupState: action.prices };
+        case FetchStates.SUCCESS:
+          const priceCache = buildPriceCache(action.prices.data);
+          return { ...state, priceLookupCache: priceCache };
+        case FetchStates.EMPTY:
         default:
           return state;
       }
-    case InternalDappAction.RESOLVE_TOKEN_PRICES:
-      return { ...state };
+    case InternalDappAction.RESOLVE_TOKENS:
+      switch (action.tokens.type) {
+        case FetchStates.FETCHING:
+        case FetchStates.ERROR:
+          return { ...state, tokenLookupState: action.tokens };
+        case FetchStates.SUCCESS:
+          const cache = buildTokenCache(action.tokens.data);
+          return { ...state, tokenLookupState: action.tokens, tokenLookupCache: cache };
+        case FetchStates.EMPTY:
+        default:
+          return state;
+      }
     case DappEvent.ACK_ADDED_ADDRESS:
     case DappEvent.ACK_REMOVED_ADDRESS:
     case DappEvent.ACK_SWITCHED_PRIMARY_ADDRESS:
@@ -318,14 +337,14 @@ const Dapp: React.FunctionComponent = (): JSX.Element => {
 
   const resolveTokens = useCallback(async () => {
     switch (state.tokenLookupState.type) {
-      case TokenLookupStates.FETCHING:
-      case TokenLookupStates.ERROR:
+      case FetchStates.FETCHING:
+      case FetchStates.ERROR:
         break;
-      case TokenLookupStates.SUCCESS:
+      case FetchStates.SUCCESS:
         break;
-      case TokenLookupStates.EMPTY:
+      case FetchStates.EMPTY:
         if (!isCacheValid(state.tokenLookupCache.age, Constants.DEFAULT_REFRESH_INTERVAL)) {
-          await fetchTokens(EthereumTokenStandards.ERC20)((state: TokenLookupState) => {
+          await fetchTokens(EthereumTokenStandards.ERC20)((state: FetchState<TokenData[]>) => {
             isMounted.current && dispatch({ type: InternalDappAction.RESOLVE_TOKENS, tokens: state });
           });
         }

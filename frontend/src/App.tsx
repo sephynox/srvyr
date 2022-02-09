@@ -5,12 +5,13 @@ import { ThemeProvider } from "styled-components";
 
 import "react-loading-skeleton/dist/skeleton.css";
 import "./scss/custom.scss";
+
 import * as Constants from "./Constants";
 import { GlobalStyle } from "./styles/GlobalStyle";
 import Toaster, { addToast as toast, ToasterTypes } from "./layout/Toaster";
 import { NavState } from "./layout/NavToggle";
 import Overlay, { OverlayState } from "./layout/Overlay";
-import { Themes, availableThemes } from "./styles/Themes";
+import { Themes, availableThemes, darkTheme } from "./styles/Themes";
 import BackTop from "./components/BackTop";
 import { localStoreOr } from "./utils/data-helpers";
 
@@ -136,7 +137,7 @@ const App: React.FunctionComponent = (): JSX.Element => {
 
   const [state, dispatch] = useReducer(appReducer, { ...initialAppState, ...hardStateResets });
 
-  const theme = availableThemes[state.theme];
+  const theme = availableThemes[state.theme] ?? darkTheme;
   const logEvents = useCallback((events: Record<string, string>[], debug = false) => {
     return null;
   }, []);

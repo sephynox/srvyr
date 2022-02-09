@@ -124,19 +124,6 @@ $font-size-base: 1rem;
   --toastify-color-progress-error: var(--toastify-color-error);
 }
 
-.table {
-  --bs-table-bg: transparent;
-  --bs-table-accent-bg: transparent;
-  --bs-table-striped-color: ${(props: ThemeEngine) => props.theme.text};
-  --bs-table-striped-bg: rgba(0, 0, 0, 0.05);
-  --bs-table-active-color: ${(props: ThemeEngine) => props.theme.infoText};
-  --bs-table-active-bg: rgba(0, 0, 0, 0.1);
-  --bs-table-hover-color: ${(props: ThemeEngine) => props.theme.infoText};
-  --bs-table-hover-bg: rgba(0, 0, 0, 0.075);
-  color: ${(props: ThemeEngine) => props.theme.text};
-  border-color: ${(props: ThemeEngine) => props.theme.backgroundDelta};
-}
-
 html,
 body {
   height: 100vh;
@@ -190,6 +177,32 @@ a:hover {
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
     monospace;
+}
+
+.daemon-fault {
+  position: fixed;
+  top: 0;
+  left: 0;
+  color: white;
+  background-color: red;
+}
+
+.table {
+  --bs-table-bg: transparent;
+  --bs-table-accent-bg: transparent;
+  --bs-table-striped-color: ${(props: ThemeEngine) => props.theme.text};
+  --bs-table-striped-bg: rgba(0, 0, 0, 0.05);
+  --bs-table-active-color: ${(props: ThemeEngine) => props.theme.infoText};
+  --bs-table-active-bg: rgba(0, 0, 0, 0.1);
+  --bs-table-hover-color: ${(props: ThemeEngine) => props.theme.infoText};
+  --bs-table-hover-bg: rgba(0, 0, 0, 0.075);
+  color: ${(props: ThemeEngine) => props.theme.text};
+  border-color: ${(props: ThemeEngine) => props.theme.backgroundDelta};
+}
+
+.recharts-default-tooltip {
+  color: ${(props: ThemeEngine) => props.theme.text} !important;
+  background-color: ${(props: ThemeEngine) => props.theme.background} !important;
 }
 
 .accordion, .accordion-item, .accordion-header {

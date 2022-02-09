@@ -36,7 +36,7 @@ export type NSLookupCache = {
 };
 
 export type TokenLookupCache = ExpiringCache & {
-  network: Record<Networks, TokenData[]>;
+  network: Record<Networks, Record<Contract, TokenData>>;
   name: Record<string, TokenData>;
   symbol: Record<string, TokenData>;
   contract: Record<Contract, TokenData>;
@@ -85,6 +85,13 @@ export type PriceData = {
 
 export type AssetPortfolio = Record<Contract, string>;
 
+export enum FetchStates {
+  EMPTY,
+  FETCHING,
+  ERROR,
+  SUCCESS,
+}
+
 export enum NSLookupStates {
   EMPTY,
   FETCHING,
@@ -93,26 +100,11 @@ export enum NSLookupStates {
   SUCCESS,
 }
 
-export enum TokenLookupStates {
-  EMPTY,
-  FETCHING,
-  ERROR,
-  SUCCESS,
-}
-
-export enum AssetPortfolioStates {
-  EMPTY,
-  FETCHING,
-  ERROR,
-  SUCCESS,
-}
-
-export enum PriceLookupStates {
-  EMPTY,
-  FETCHING,
-  ERROR,
-  SUCCESS,
-}
+export type FetchState<T> =
+  | { type: typeof FetchStates.EMPTY; data?: T }
+  | { type: typeof FetchStates.FETCHING; data?: T }
+  | { type: typeof FetchStates.ERROR; data?: T; error: string }
+  | { type: typeof FetchStates.SUCCESS; data: T };
 
 export type NSLookupState =
   | { type: typeof NSLookupStates.EMPTY; data?: NSLookupData }
@@ -121,40 +113,8 @@ export type NSLookupState =
   | { type: typeof NSLookupStates.NO_RESOLVE; data: NSLookupData }
   | { type: typeof NSLookupStates.SUCCESS; data: NSLookupData };
 
-export type TokenLookupState =
-  | { type: typeof TokenLookupStates.EMPTY; data?: TokenData[] }
-  | { type: typeof TokenLookupStates.FETCHING; data?: TokenData[] }
-  | { type: typeof TokenLookupStates.ERROR; data?: TokenData[]; error: TokenLookupErrors }
-  | { type: typeof TokenLookupStates.SUCCESS; data: TokenData[] };
-
-export type AssetPortfolioState =
-  | { type: typeof AssetPortfolioStates.EMPTY; address: string; data?: AssetPortfolio }
-  | { type: typeof AssetPortfolioStates.FETCHING; address: string; data?: AssetPortfolio }
-  | { type: typeof AssetPortfolioStates.ERROR; address: string; data?: AssetPortfolio; error: AssetPortfolioErrors }
-  | { type: typeof AssetPortfolioStates.SUCCESS; address: string; data: AssetPortfolio };
-
-export type PriceLookupState =
-  | { type: typeof PriceLookupStates.EMPTY; data?: PriceData }
-  | { type: typeof PriceLookupStates.FETCHING; data?: PriceData }
-  | { type: typeof PriceLookupStates.ERROR; data?: PriceData; error: TokenLookupErrors }
-  | { type: typeof PriceLookupStates.SUCCESS; data: PriceData };
-
 export const initialNSLookupState: NSLookupState = {
   type: NSLookupStates.EMPTY,
-};
-
-export const initialTokenLookupState: TokenLookupState = {
-  type: TokenLookupStates.EMPTY,
-};
-
-export const initialAssetPortfolioState: AssetPortfolioState = {
-  type: AssetPortfolioStates.EMPTY,
-  address: "",
-  data: {},
-};
-
-export const initialPriceLookupState: PriceLookupState = {
-  type: PriceLookupStates.EMPTY,
 };
 
 export const initialNSLookupCache: NSLookupCache = {
@@ -165,7 +125,7 @@ export const initialNSLookupCache: NSLookupCache = {
 export const initialTokenLookupCache: TokenLookupCache = {
   age: 0,
   network: {
-    [Networks.ETHEREUM]: [],
+    [Networks.ETHEREUM]: {},
   },
   name: {},
   symbol: {},
@@ -189,14 +149,18 @@ export const buildTokenCache = (data: TokenData[]): TokenLookupCache => {
   const cache = { ...initialTokenLookupCache, age: Date.now() };
 
   data.forEach((tokenLookupData) => {
-    cache.network[tokenLookupData.network] = Array.from(
-      new Set([tokenLookupData, ...cache.network[tokenLookupData.network]])
-    );
+    cache.network[tokenLookupData.network][tokenLookupData.contract] = tokenLookupData;
     cache.name[tokenLookupData.name] = tokenLookupData;
     cache.symbol[tokenLookupData.ticker] = tokenLookupData;
     cache.contract[tokenLookupData.contract] = tokenLookupData;
   });
 
+  return cache;
+};
+
+export const buildPriceCache = (data: Record<string, PriceData>): PriceLookupCache => {
+  const cache: PriceLookupCache = {};
+  Object.keys(data).forEach((k) => (cache[k] = { age: Date.now(), data: data[k] }));
   return cache;
 };
 

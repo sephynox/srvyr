@@ -1,25 +1,27 @@
 import { ethers } from "ethers";
 import { Dispatch } from "react";
+import { SymfoniBalanceChecker } from "../hardhat/SymfoniContext";
 import { BalanceChecker } from "../hardhat/typechain/BalanceChecker";
 import { isCacheValid } from "../utils/data-helpers";
 
 import {
   addAssetPortfolio,
   Address,
+  AssetPortfolio,
   AssetPortfolioCache,
   AssetPortfolioErrors,
-  AssetPortfolioState,
-  AssetPortfolioStates,
   Contract,
+  FetchState,
+  FetchStates,
   Networks,
   NSLookupCache,
   NSLookupData,
   NSLookupErrors,
   NSLookupState,
   NSLookupStates,
+  PriceData,
+  TokenData,
   TokenLookupErrors,
-  TokenLookupState,
-  TokenLookupStates,
 } from "./Network";
 
 export const REGEX_ETHEREUM_ADDRESS = "/^0x[a-fA-F0-9]{40}$/";
@@ -145,21 +147,21 @@ export const fetchGasPrice =
     );
   };
 
-export const fetchTokens = (type: string) => async (dispatch: Dispatch<TokenLookupState>) => {
-  dispatch({ type: TokenLookupStates.FETCHING });
+export const fetchTokens = (type: string) => async (dispatch: Dispatch<FetchState<TokenData[]>>) => {
+  dispatch({ type: FetchStates.FETCHING });
 
   return fetch(`/data/${type}.json`)
     .then((response) => response.json())
     .then(
       (result) => {
         if (!result) {
-          dispatch({ type: TokenLookupStates.ERROR, error: TokenLookupErrors.FAILED });
+          dispatch({ type: FetchStates.ERROR, error: TokenLookupErrors.FAILED });
         } else {
-          dispatch({ type: TokenLookupStates.SUCCESS, data: result });
+          dispatch({ type: FetchStates.SUCCESS, data: result });
         }
       },
       (error) => {
-        dispatch({ type: TokenLookupStates.ERROR, error: error.message });
+        dispatch({ type: FetchStates.ERROR, error: error.message });
       }
     );
 };
@@ -172,11 +174,12 @@ export const fetchBalances =
     cache?: AssetPortfolioCache,
     ttl?: number
   ) =>
-  async (dispatch: Dispatch<AssetPortfolioState>) => {
-    dispatch({ type: AssetPortfolioStates.FETCHING, address });
+  async (dispatch: Dispatch<FetchState<{ address: string; portfolio: AssetPortfolio }>>) => {
+    dispatch({ type: FetchStates.FETCHING, data: { address, portfolio: {} } });
 
     if (!ethers.utils.isAddress(address)) {
-      dispatch({ type: AssetPortfolioStates.ERROR, address, error: AssetPortfolioErrors.INVALID_ADDRESS });
+      const data = { address, portfolio: {} };
+      dispatch({ type: FetchStates.ERROR, data, error: AssetPortfolioErrors.INVALID_ADDRESS });
       return Promise.reject({ message: AssetPortfolioErrors.INVALID_ADDRESS });
     }
 
@@ -196,11 +199,46 @@ export const fetchBalances =
         .then((balances) => {
           return addAssetPortfolio(contractAddresses, balances);
         })
-        .then((data) => {
-          dispatch({ type: AssetPortfolioStates.SUCCESS, data: data, address });
+        .then((portfolio) => {
+          dispatch({ type: FetchStates.SUCCESS, data: { portfolio, address } });
         });
     } catch (e) {
-      dispatch({ type: AssetPortfolioStates.ERROR, address, error: AssetPortfolioErrors.FAILED });
+      dispatch({ type: FetchStates.ERROR, data: { address, portfolio: {} }, error: AssetPortfolioErrors.FAILED });
+      return Promise.reject(e);
+    }
+  };
+
+export const fetchTokenPriceData =
+  (token: Contract, address: Contract, balanceChecker: SymfoniBalanceChecker) =>
+  async (dispatch: Dispatch<FetchState<PriceData>>) => {
+    dispatch({ type: FetchStates.FETCHING });
+  };
+
+export const fetchTokenPrices =
+  (tokens: Contract[], feeds: Contract[], balanceChecker: SymfoniBalanceChecker) =>
+  async (dispatch: Dispatch<FetchState<Record<Contract, PriceData>>>) => {
+    dispatch({ type: FetchStates.FETCHING });
+
+    if (!balanceChecker.instance) {
+      const error = "BalanceChecker not available.";
+      dispatch({ type: FetchStates.ERROR, error: error });
+      return Promise.reject({ message: error });
+    }
+
+    try {
+      return balanceChecker.instance
+        .attach(`${process.env.REACT_APP_TEMP_BALANCECHECKER_CONTRACT}`) // FIXME
+        .getLatestPrices(feeds)
+        .then((prices) => prices.map((price) => ethers.utils.formatUnits(price)))
+        .then((prices) => {
+          const record: Record<Contract, PriceData> = {};
+          prices.forEach((price, i) => {
+            record[tokens[i]] = { epoch: "0", price: price, timestamp: Date.now() };
+          });
+          dispatch({ type: FetchStates.SUCCESS, data: record });
+        });
+    } catch (e) {
+      dispatch({ type: FetchStates.ERROR, error: e as string });
       return Promise.reject(e);
     }
   };

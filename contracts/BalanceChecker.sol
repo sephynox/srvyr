@@ -46,6 +46,7 @@ contract BalanceChecker is ERC165 {
             interfaceID == this.supportsInterface.selector ||
             interfaceID ==
             this.getLatestPrice.selector ^
+                this.getLatestPrices.selector ^
                 this.tokenBalance.selector ^
                 this.tokenBalances.selector ^
                 this.tokenBalanceWithInterfaces.selector ^
@@ -104,6 +105,68 @@ contract BalanceChecker is ERC165 {
         return _balances(users, tokens, interfaceID);
     }
 
+    /// Return the latest price data for a feed.
+    /// @param feedAddress The feed contract address to use.
+    function getLatestPrice(address feedAddress)
+        public
+        view
+        returns (
+            uint80 roundID,
+            int256 price,
+            uint256 startedAt,
+            uint256 timeStamp,
+            uint80 answeredInRound
+        )
+    {
+        AggregatorV3Interface priceFeed = AggregatorV3Interface(feedAddress);
+        return priceFeed.latestRoundData();
+    }
+
+    /// Return the latest price data for a feed.
+    /// @param feedAddresses The feed contract address to use.
+    function getLatestPrices(address[] memory feedAddresses)
+        public
+        view
+        returns (int256[] memory)
+    {
+        int256[] memory contractPrices = new int256[](feedAddresses.length);
+
+        for (uint256 i = 0; i < feedAddresses.length; i++) {
+            AggregatorV3Interface priceFeed = AggregatorV3Interface(
+                feedAddresses[i]
+            );
+
+            try priceFeed.latestRoundData() returns (
+                uint80, /* roundID */
+                int256 price,
+                uint256, /* startedAt */
+                uint256 timeStamp,
+                uint80 /* answeredInRound */
+            ) {
+                if (timeStamp != 0) {
+                    contractPrices[i] = price;
+                } else {
+                    contractPrices[i] = 0;
+                }
+            } catch {
+                contractPrices[i] = 0;
+            }
+        }
+
+        return contractPrices;
+    }
+
+    // TODO We will need to query the roundId and store it.
+    // /// Return the historical price data for a feed.
+    // /// @param feedAddress The feed contract address to use.
+    // function getHsitoricalPrices(address feedAddress)
+    //     public
+    //     view
+    //     returns (int256[] memory)
+    // {
+
+    // }
+
     function _balances(
         address[] memory users,
         address[] memory tokens,
@@ -129,23 +192,6 @@ contract BalanceChecker is ERC165 {
         }
 
         return addrBalances;
-    }
-
-    /// Return the latest price data for a feed.
-    /// @param feedAddress The feed contract address to use.
-    function getLatestPrice(address feedAddress)
-        public
-        view
-        returns (
-            uint80 roundID,
-            int256 price,
-            uint256 startedAt,
-            uint256 timeStamp,
-            uint80 answeredInRound
-        )
-    {
-        AggregatorV3Interface priceFeed = AggregatorV3Interface(feedAddress);
-        return priceFeed.latestRoundData();
     }
 
     function _tokenBalance(
