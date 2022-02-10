@@ -6,7 +6,7 @@ import Theme from "../styles/Themes";
 import { randomNumber } from "../utils/data-helpers";
 
 type Props = {
-  type?: "Profile" | "Bars" | "Paragraphs";
+  type?: "Profile" | "Bars" | "Paragraphs" | "Circle";
   height?: number | string;
   width?: number | string;
   thickness?: number | string;
@@ -18,6 +18,17 @@ export const SkeletonProfile: React.FunctionComponent<Props> = (props): JSX.Elem
   <SkeletonContainerStyle>
     <LoaderSkeleton type="Profile" {...props} />
   </SkeletonContainerStyle>
+);
+
+export const SkeletonPieData: React.FunctionComponent<Props> = (props): JSX.Element => (
+  <SkeletonInlineStyle>
+    <figure>
+      <LoaderSkeleton type="Circle" {...props} />
+      <figcaption>
+        <LoaderSkeleton bars={3} type="Bars" {...props} />
+      </figcaption>
+    </figure>
+  </SkeletonInlineStyle>
 );
 
 const LoaderSkeleton: React.FunctionComponent<Props> = ({
@@ -40,6 +51,8 @@ const LoaderSkeleton: React.FunctionComponent<Props> = ({
           <Skeleton count={1} width={width} baseColor={baseColor} highlightColor={highlightColor} />
         </>
       );
+    case "Circle":
+      return <Skeleton circle width={width} height={height} baseColor={baseColor} highlightColor={highlightColor} />;
     case "Bars":
       return (
         <>
@@ -47,7 +60,7 @@ const LoaderSkeleton: React.FunctionComponent<Props> = ({
             <Skeleton
               key={i}
               count={1}
-              width={`calc(${width} - ${randomNumber(1, 10)}em)`}
+              width={width}
               height={thickness}
               baseColor={baseColor}
               highlightColor={highlightColor}
@@ -77,6 +90,21 @@ const LoaderSkeleton: React.FunctionComponent<Props> = ({
 };
 
 export default LoaderSkeleton;
+
+const SkeletonInlineStyle = styled.div`
+  display: flex;
+  flex-direction: row;
+
+  & figure {
+    margin: 0;
+  }
+
+  & figcaption {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+`;
 
 const SkeletonContainerStyle = styled.div`
   text-align: center;

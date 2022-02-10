@@ -1,3 +1,4 @@
+import { EtherscanProvider } from "@ethersproject/providers";
 import { ethers } from "ethers";
 import { Dispatch } from "react";
 import { SymfoniBalanceChecker } from "../hardhat/SymfoniContext";
@@ -22,6 +23,8 @@ import {
   PriceData,
   TokenData,
   TokenLookupErrors,
+  Transaction,
+  TransactionCache,
 } from "./Network";
 
 export const REGEX_ETHEREUM_ADDRESS = "/^0x[a-fA-F0-9]{40}$/";
@@ -69,6 +72,7 @@ export const gasePriceReducer = (state: GasPriceState, action: GasPriceState): G
   }
 };
 
+// TODO Use Smart contract Lookup
 export const fetchAddress =
   (lookup: NSLookupData, provider: ethers.providers.Provider, cache?: NSLookupCache) =>
   async (dispatch: Dispatch<NSLookupState>) => {
@@ -208,6 +212,46 @@ export const fetchBalances =
     }
   };
 
+export const fetchTransactionHistory =
+  (address: Contract, provider: EtherscanProvider, cache?: TransactionCache, ttl?: number) =>
+  async (dispatch: Dispatch<FetchState<{ address: string; transactions: Transaction[] }>>) => {
+    dispatch({ type: FetchStates.FETCHING });
+
+    if (!ethers.utils.isAddress(address)) {
+      dispatch({ type: FetchStates.ERROR, error: AssetPortfolioErrors.INVALID_ADDRESS });
+      return Promise.reject({ message: AssetPortfolioErrors.INVALID_ADDRESS });
+    }
+
+    let promise: Promise<Transaction[]>;
+
+    if (cache && ttl && cache[address] && cache[address].data && isCacheValid(cache[address].age, ttl)) {
+      promise = Promise.resolve(cache[address].data).then((transactions) => transactions);
+    } else {
+      promise = provider.getHistory(address).then((result) => {
+        return result.map((t) =>
+          Object({
+            network: Networks.ETHEREUM,
+            hash: t.hash,
+            to: t.to ?? "N/A",
+            from: t.from,
+            data: t.data,
+            type: t.type?.toString(),
+            timestamp: t.timestamp ?? 0,
+          })
+        );
+      });
+    }
+
+    promise
+      .then((transactions) => {
+        dispatch({ type: FetchStates.SUCCESS, data: { address: address, transactions } });
+      })
+      .catch((e) => {
+        dispatch({ type: FetchStates.ERROR, error: e as string });
+      });
+  };
+
+// TODO
 export const fetchTokenPriceData =
   (token: Contract, address: Contract, balanceChecker: SymfoniBalanceChecker) =>
   async (dispatch: Dispatch<FetchState<PriceData>>) => {

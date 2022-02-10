@@ -5,7 +5,6 @@ import "hardhat/console.sol";
 
 import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
-
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
@@ -69,7 +68,7 @@ contract BalanceChecker is ERC165 {
     /// an additional interface check for contract types via ERC165.
     /// @param user The address of the token holder
     /// @param token The address of the token contract
-    /// @param interfaceID The interface to check for.
+    /// @param interfaceID The interface to check for
     /// @return uint256 of the balance
     function tokenBalanceWithInterfaces(
         address user,
@@ -106,7 +105,7 @@ contract BalanceChecker is ERC165 {
     }
 
     /// Return the latest price data for a feed.
-    /// @param feedAddress The feed contract address to use.
+    /// @param feedAddress The feed contract address to use
     function getLatestPrice(address feedAddress)
         public
         view
@@ -123,7 +122,7 @@ contract BalanceChecker is ERC165 {
     }
 
     /// Return the latest price data for a feed.
-    /// @param feedAddresses The feed contract address to use.
+    /// @param feedAddresses The feed contract address to use
     function getLatestPrices(address[] memory feedAddresses)
         public
         view
@@ -167,33 +166,6 @@ contract BalanceChecker is ERC165 {
 
     // }
 
-    function _balances(
-        address[] memory users,
-        address[] memory tokens,
-        bytes4[] memory interfaces
-    ) private view returns (uint256[] memory) {
-        uint256[] memory addrBalances = new uint256[](
-            tokens.length * users.length
-        );
-
-        for (uint256 i = 0; i < users.length; i++) {
-            for (uint256 j = 0; j < tokens.length; j++) {
-                uint256 addrIdx = j + tokens.length * i;
-                if (tokens[j] != address(0x0)) {
-                    addrBalances[addrIdx] = _tokenBalance(
-                        users[i],
-                        tokens[j],
-                        interfaces
-                    );
-                } else {
-                    addrBalances[addrIdx] = users[i].balance;
-                }
-            }
-        }
-
-        return addrBalances;
-    }
-
     function _tokenBalance(
         address user,
         address token,
@@ -234,5 +206,32 @@ contract BalanceChecker is ERC165 {
         }
 
         return result;
+    }
+
+    function _balances(
+        address[] memory users,
+        address[] memory tokens,
+        bytes4[] memory interfaces
+    ) private view returns (uint256[] memory) {
+        uint256[] memory addrBalances = new uint256[](
+            tokens.length * users.length
+        );
+
+        for (uint256 i = 0; i < users.length; i++) {
+            for (uint256 j = 0; j < tokens.length; j++) {
+                uint256 addrIdx = j + tokens.length * i;
+                if (tokens[j] != address(0x0)) {
+                    addrBalances[addrIdx] = _tokenBalance(
+                        users[i],
+                        tokens[j],
+                        interfaces
+                    );
+                } else {
+                    addrBalances[addrIdx] = users[i].balance;
+                }
+            }
+        }
+
+        return addrBalances;
     }
 }

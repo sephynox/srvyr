@@ -38,12 +38,16 @@ import {
   FetchStates,
   buildPriceCache,
   Contract,
+  TransactionCache,
+  initialTransactionCache,
+  Transaction,
 } from "./actions/Network";
 import { EthereumTokenStandards, fetchAddress as fetchEtherAddress, fetchTokens } from "./actions/Ethereum";
 import { Symfoni } from "./hardhat/SymfoniContext";
 import { BlockieState } from "./components/Blockies";
 import { isCacheValid, localStoreOr, shortDisplayAddress } from "./utils/data-helpers";
 import { useIsMounted } from "./utils/custom-hooks";
+import { EtherscanProvider } from "@ethersproject/providers";
 
 declare global {
   interface Window {
@@ -77,6 +81,7 @@ export enum DappAction {
   ADD_CACHE_ADDRESS = "ADD_CACHE_ADDRESS",
   ADD_CACHE_PORTFOLIO = "ADD_CACHE_PORTFOLIO",
   ADD_CACHE_PRICE = "ADD_CACHE_PRICE",
+  ADD_CACHE_TRANSACTIONS = "ADD_CACHE_TRANSACTIONS",
 }
 
 enum InternalDappAction {
@@ -110,6 +115,7 @@ export type DappActions =
   | { type: DappAction.REMOVE_USER_ADDRESS; address: number }
   | { type: DappAction.ADD_CACHE_ADDRESS; address: NSLookupState }
   | { type: DappAction.ADD_CACHE_PORTFOLIO; address: Address; portfolio: AssetPortfolio }
+  | { type: DappAction.ADD_CACHE_TRANSACTIONS; address: Address; transactions: Transaction[] }
   | { type: DappAction.RESOLVE_TOKEN_PRICES; prices: FetchState<Record<Contract, PriceData>> }
   | { type: InternalDappAction.RESOLVE_TOKENS; tokens: FetchState<TokenData[]> }
   | { type: DappEvent.ACK_ADDED_ADDRESS }
@@ -126,6 +132,7 @@ type DappState = {
   tokenLookupCache: TokenLookupCache;
   priceLookupState: FetchState<Record<Contract, PriceData>>;
   priceLookupCache: PriceLookupCache;
+  transactionCache: TransactionCache;
   nsLookupCache: NSLookupCache;
   addressPortfolioCache: AssetPortfolioCache;
 };
@@ -155,6 +162,7 @@ const initialDappState: DappState = localStoreOr("dappState", {
   activeAddress: initialNSLookupState,
   tokenLookupCache: initialTokenLookupCache,
   priceLookupCache: initialPriceLookupCache,
+  transactionCache: initialTransactionCache,
   nsLookupCache: initialNSLookupCache,
   ...hardStateResets,
 });
@@ -195,6 +203,9 @@ const dappReducer = (state: DappState, action: DappActions): DappState => {
     case DappAction.ADD_CACHE_PORTFOLIO:
       const portfolioCache = { [action.address]: { age: Date.now(), data: action.portfolio } };
       return { ...state, addressPortfolioCache: { ...state.addressPortfolioCache, ...portfolioCache } };
+    case DappAction.ADD_CACHE_TRANSACTIONS:
+      const transactionCache = { [action.address]: { age: Date.now(), data: action.transactions } };
+      return { ...state, transactionCache: { ...state.transactionCache, ...transactionCache } };
     case DappAction.RESOLVE_TOKEN_PRICES:
       switch (action.prices.type) {
         case FetchStates.FETCHING:
@@ -229,6 +240,7 @@ const dappReducer = (state: DappState, action: DappActions): DappState => {
 
 export const DappContext = createContext<{
   ethersProvider: ethers.providers.Provider;
+  etherScanProvider: EtherscanProvider;
   state: DappState;
   dispatch: Dispatch<DappActions>;
   lookupToken: (token: string) => TokenData | undefined;
@@ -236,6 +248,7 @@ export const DappContext = createContext<{
   resolveAddress: (address: string, network: Networks) => (dispatch: React.Dispatch<NSLookupState>) => Promise<void>;
 }>({
   ethersProvider: ethers.getDefaultProvider(),
+  etherScanProvider: new ethers.providers.EtherscanProvider(),
   state: initialDappState,
   dispatch: () => null,
   lookupToken: () => undefined,
@@ -253,6 +266,9 @@ const Dapp: React.FunctionComponent = (): JSX.Element => {
     process.env.NODE_ENV === "production"
       ? new ethers.providers.InfuraProvider(Constants.DEFAULT_ETHERS_NETWORK, Constants.DAPP_CONFIG)
       : new ethers.providers.Web3Provider(window.ethereum)
+  );
+  const [etherScanProvider] = useState<EtherscanProvider>(
+    new ethers.providers.EtherscanProvider(Constants.DEFAULT_ETHERS_NETWORK, process.env.REACT_APP_ETHERSCAN_API_KEY)
   );
 
   // Safety check
@@ -319,6 +335,7 @@ const Dapp: React.FunctionComponent = (): JSX.Element => {
 
   const dappContext = {
     ethersProvider,
+    etherScanProvider,
     state,
     dispatch,
     lookupToken,
@@ -427,7 +444,7 @@ export default Dapp;
 const MainStyle = styled.main`
   flex-basis: 100%;
   max-width: 100vw;
-  height: calc(100vh - var(--srvyr-footer-height));
+  height: calc(100% - var(--srvyr-footer-height));
   left: 0;
   background-size: cover;
   padding: 15px;

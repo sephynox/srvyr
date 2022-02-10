@@ -7,6 +7,8 @@
   "license": "MIT",
   "devDependencies": {
     "@chainlink/contracts": "^0.3.1",
+    "@ensdomains/ens-contracts": "^0.0.8",
+    "@ensdomains/reverse-records": "^1.0.0",
     "@ethersproject/abi": "^5.5.0",
     "@ethersproject/bytes": "^5.5.0",
     "@ethersproject/hardware-wallets": "^5.5.0",
@@ -14,6 +16,7 @@
     "@nomiclabs/hardhat-ethers": "^2.0.0",
     "@nomiclabs/hardhat-etherscan": "^2.1.3",
     "@nomiclabs/hardhat-waffle": "^2.0.0",
+    "@nomiclabs/hardhat-web3": "^2.0.0",
     "@openzeppelin/contracts": "^4.4.2",
     "@symfoni/hardhat-react": "^0.3.0",
     "@typechain/ethers-v5": "^7.0.1",
@@ -49,7 +52,12 @@
     "ts-morph": "^13.0.3",
     "ts-node": "^10.1.0",
     "typechain": "^7.0.0",
-    "typescript": "^4.5.2"
+    "typescript": "^4.5.2",
+    "web3": "^1.7.0",
+    "web3-core-helpers": "^1.7.0",
+    "web3-core-promievent": "^1.7.0",
+    "web3-eth-abi": "^1.7.0",
+    "web3-utils": "^1.7.0"
   },
   "dependencies": {}
 }

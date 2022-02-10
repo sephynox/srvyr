@@ -4,10 +4,11 @@ import BTable from "react-bootstrap/Table";
 import { useTable, Column, HeaderGroup, ColumnInstance } from "react-table";
 import { PieChart, Pie, Cell, Legend } from "recharts";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faWallet } from "@fortawesome/free-solid-svg-icons";
+import { faArrowsAlt, faInbox, faPaperPlane, faWallet, IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import styled from "styled-components";
 
-import { formatPrice } from "../utils/data-helpers";
+import { ThemeEngine } from "../styles/GlobalStyle";
+import { datedRecordFromArray, formatPrice, shortDisplayAddress } from "../utils/data-helpers";
 
 type Props = {
   data: AssetTableData[];
@@ -132,6 +133,94 @@ export const AssetsTable: React.FunctionComponent<Props> = ({ data, currency, to
   );
 };
 
+export interface TransactionTableData {
+  timestamp: number;
+  type: string;
+  from: string;
+  to: string;
+  data: string;
+}
+
+type TransactionTableProps = {
+  address: string;
+  data: TransactionTableData[];
+  limit?: number;
+};
+
+const icons: Record<string, IconDefinition> = {
+  send: faPaperPlane,
+  receive: faInbox,
+  contract: faArrowsAlt,
+};
+
+export const TransactionsTable: React.FunctionComponent<TransactionTableProps> = ({
+  address,
+  data,
+  limit = 100,
+}): JSX.Element => {
+  const { t, i18n } = useTranslation();
+  const records = datedRecordFromArray(data);
+
+  const buildRow = (index: number, record: TransactionTableData): JSX.Element => {
+    const time = Intl.DateTimeFormat(i18n.language, {
+      hour: "numeric",
+      minute: "numeric",
+      second: "numeric",
+    }).format(new Date(record.timestamp));
+
+    let icon: IconDefinition = icons.contract;
+    let type = "send";
+    let title: string = t("contract");
+
+    if (record.from === address) {
+      icon = icons.send;
+      type = "send";
+      title = t("send");
+    } else if (record.to === address) {
+      icon = icons.receive;
+      type = "receive";
+      title = t("receive");
+    }
+
+    return (
+      <TransactionRowStyle key={index}>
+        <div>
+          <figure>
+            <FontAwesomeIcon icon={icon} />
+            <figcaption>
+              <strong>{title}</strong>
+              <em>{time}</em>
+            </figcaption>
+          </figure>
+          <section className="d-none d-sm-none d-md-block"></section>
+          <section>
+            <em>{t(type === "send" ? "to" : "from")}</em>
+            <address>{shortDisplayAddress(type === "send" ? record.to : record.from)}</address>
+          </section>
+        </div>
+        <hr />
+      </TransactionRowStyle>
+    );
+  };
+
+  const buildGroup = (index: number, date: number, records: TransactionTableData[]): JSX.Element => {
+    return (
+      <TransactionDateBlockStyle key={index}>
+        <h4>{Intl.DateTimeFormat(i18n.language).format(new Date(date))}</h4>
+        <hr />
+        {records.map((record, i) => buildRow(i, record))}
+      </TransactionDateBlockStyle>
+    );
+  };
+
+  return (
+    <>
+      <h3>{t("history")}</h3>
+      {Object.keys(records).map((d, i) => buildGroup(i, parseInt(d), records[parseInt(d)]))}
+    </>
+  );
+};
+
 type AssetsPieProps = {
   height: number;
   width: number;
@@ -169,6 +258,53 @@ export const AssetsPie: React.FunctionComponent<AssetsPieProps> = ({
     </PieChart>
   );
 };
+
+const TransactionDateBlockStyle = styled.section`
+  & h4 {
+    margin-top: 3rem;
+  }
+`;
+
+const TransactionRowStyle = styled.article`
+  & div {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  & div,
+  hr {
+    margin-left: 20px;
+  }
+
+  & figure {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    margin: 0.5rem;
+
+    & svg {
+      width: 40px !important;
+      height: 40px !important;
+      padding-right: 20px;
+    }
+
+    & figcaption {
+      display: flex;
+      flex-direction: column;
+
+      & em {
+        color: ${(props: ThemeEngine) => props.theme.textSubdued};
+      }
+    }
+  }
+
+  & section {
+    display: flex;
+    flex-direction: column;
+  }
+`;
 
 const HeaderStyle = styled.h3`
   padding-bottom: 20px;

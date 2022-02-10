@@ -78,3 +78,18 @@ export const formatNumber = (n: number | bigint, lang: string, r?: number, opts?
 export const formatPrice = (n: number | bigint, r = 2, lang: string, currency: string): string => {
   return formatNumber(n, lang, r, { style: "currency", currency: currency });
 };
+
+export const datedRecordFromArray = <T extends { timestamp: number }>(data: T[]): Record<number, T[]> => {
+  const result: Record<number, T[]> = {};
+  data
+    .sort((a, b) => b.timestamp - a.timestamp)
+    .forEach((entry) => {
+      const date = new Date(new Date(entry.timestamp * 1000).toDateString()).getTime();
+      if (!result[date]) {
+        result[date] = [entry];
+      } else {
+        result[date].push(entry);
+      }
+    });
+  return result;
+};

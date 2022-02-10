@@ -126,7 +126,7 @@ $font-size-base: 1rem;
 
 html,
 body {
-  height: 100vh;
+  min-height: 100vh;
   margin: 0;
   padding: 0;
   overflow-y: auto;
@@ -140,6 +140,10 @@ body {
       sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
 }
 
 h1 {

@@ -1,10 +1,10 @@
 import React from "react";
 
-import { AssetPortfolio, PriceLookupCache, TokenData } from "../actions/Network";
-import { AssetPieData, AssetTableData } from "../components/Assets";
+import { AssetPortfolio, PriceLookupCache, TokenData, Transaction } from "../actions/Network";
+import { AssetPieData, AssetTableData, TransactionTableData } from "../components/Assets";
 import CryptoIcon from "../components/CryptoIcon";
 
-export const buildTableData = (
+export const buildAssetTableData = (
   tokens: Record<string, TokenData>,
   portfolio: AssetPortfolio,
   prices?: PriceLookupCache
@@ -18,6 +18,16 @@ export const buildTableData = (
     }))
     .filter((t) => parseInt(portfolio[t.contract]) !== 0)
     .filter((v, i, a) => a.findIndex((t) => t.contract === v.contract) === i);
+};
+
+export const buildTransactionTableData = (transactions: Transaction[]): TransactionTableData[] => {
+  return transactions.map((t) => ({
+    timestamp: t.timestamp,
+    type: t.type,
+    from: t.from,
+    to: t.to,
+    data: t.data,
+  }));
 };
 
 export const buildPieData = (

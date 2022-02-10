@@ -51,9 +51,7 @@ const Overview = (): JSX.Element => {
           />
           <p>
             SRVYR is a lens into the decentralized ecosystem. The application is fully decentralized, does not collect
-            personal data, and can be run locally if one wishes. As a result, the team at SRVYR has provided multiple
-            options to self-custody your data. If you choose to use a centralized data storage option like Google Drive,
-            you agree to take on any privacy risks associated with using Google Drive.
+            personal data, and can be run locally if one wishes.
           </p>
         </Section>
       </AboutStyle>

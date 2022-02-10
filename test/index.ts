@@ -8,6 +8,8 @@ describe("BalanceChecker", function () {
   const TEST_TOKEN_BALANCE = 1000000;
   const ETHER_ADDRESS = "0x0000000000000000000000000000000000000000";
   const CHAINLINK_ETHER_FEED = "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419";
+  const ENS_RESOLVER = "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e";
+  const REVERSE_ENS_RESOLVE = "0x196eC7109e127A353B709a20da25052617295F6f";
 
   let balanceChecker: Contract;
   let testToken: Contract;
@@ -89,4 +91,8 @@ describe("BalanceChecker", function () {
     expect(prices[0]).to.not.be.empty;
     expect(prices[1]).to.not.be.empty;
   });
+
+  // it("Should resolve an ENS name", async () => {
+  //   // TODO
+  // });
 });

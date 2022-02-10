@@ -56,6 +56,13 @@ export type AssetPortfolioCache = Record<
   }
 >;
 
+export type TransactionCache = Record<
+  Address,
+  ExpiringCache & {
+    data: Transaction[];
+  }
+>;
+
 export type NSLookupData = {
   network: Networks;
   ns?: string | null | undefined;
@@ -80,6 +87,16 @@ export type TokenData = {
 export type PriceData = {
   epoch: string;
   price: string;
+  timestamp: number;
+};
+
+export type Transaction = {
+  network: Networks;
+  hash: string;
+  to: Contract;
+  from: Contract;
+  data: string;
+  type: string;
   timestamp: number;
 };
 
@@ -134,6 +151,7 @@ export const initialTokenLookupCache: TokenLookupCache = {
 
 export const initialAssetPortfolioCache: AssetPortfolioCache = {};
 export const initialPriceLookupCache: PriceLookupCache = {};
+export const initialTransactionCache: TransactionCache = {};
 
 export const addAssetPortfolio = (contracts: Contract[], amounts: string[]): AssetPortfolio => {
   const data: AssetPortfolio = {};

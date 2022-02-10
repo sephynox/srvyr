@@ -10,8 +10,11 @@ import { Section } from "../styles/Section";
 import { AppAction, AppContext } from "../App";
 import { DappAction, DappContext, getBlockieState } from "../Dapp";
 import { PAGE_OVERVIEW } from "../Routes";
+import usePriced from "../services/price-daemon";
 import {
+  Address,
   AssetPortfolio,
+  Contract,
   FetchState,
   FetchStates,
   initialNSLookupState,
@@ -20,19 +23,31 @@ import {
   NSLookupStates,
   PriceLookupCache,
   TokenData,
+  Transaction,
 } from "../actions/Network";
-import { fetchBalances, fetchTokenPrices } from "../actions/Ethereum";
-import LoaderSkeleton, { SkeletonProfile } from "../layout/LoaderSkeleton";
-import { AssetTableData, AssetPieData, AssetsPie, AssetsTable } from "../components/Assets";
+import { fetchBalances, fetchTokenPrices, fetchTransactionHistory } from "../actions/Ethereum";
+import LoaderSkeleton, { SkeletonPieData, SkeletonProfile } from "../layout/LoaderSkeleton";
+import {
+  AssetTableData,
+  AssetPieData,
+  AssetsPie,
+  AssetsTable,
+  TransactionTableData,
+  TransactionsTable,
+} from "../components/Assets";
 import { Blockie } from "../components/Blockies";
 import { Copy } from "../components/IconButtons";
+import {
+  buildPieData,
+  buildAssetTableData,
+  getTotalPortfolioValue,
+  buildTransactionTableData,
+} from "../tools/ChartData";
+import { fetchPriceFeeds } from "../tools/CacheData";
 import { isCacheValid, shortDisplayAddress } from "../utils/data-helpers";
 import { useIsMounted } from "../utils/custom-hooks";
 
 import { BalanceCheckerContext } from "./../hardhat/SymfoniContext";
-import usePriced from "../services/price-daemon";
-import { buildPieData, buildTableData, getTotalPortfolioValue } from "../tools/ChartData";
-import { fetchPriceFeeds } from "../tools/CacheData";
 
 const DEFAULT_REFRESH_INTERVAL = 60;
 
@@ -40,79 +55,108 @@ enum OverviewEvent {
   SYN_BOOT = "SYN_BOOT",
   LISTENING = "LISTENING",
   SYN_REQUESTED_ASSET_LOAD = "SYN_REQUESTED_ASSET_LOAD",
+  SYN_REQUESTED_PORTFOLIO_LOAD = "SYN_REQUESTED_PORTFOLIO_LOAD",
 }
 
 export type OverviewEvents =
   | { type: OverviewEvent.SYN_BOOT }
   | { type: OverviewEvent.LISTENING }
-  | { type: OverviewEvent.SYN_REQUESTED_ASSET_LOAD; address: string };
+  | { type: OverviewEvent.SYN_REQUESTED_ASSET_LOAD; address: string }
+  | { type: OverviewEvent.SYN_REQUESTED_PORTFOLIO_LOAD; address: string };
 
 enum OverviewAction {
-  LOAD_ASSET_STATE = "LOAD_ASSET_STATE",
+  LOAD_ADDRESS_STATE = "LOAD_ADDRESS_STATE",
   SET_ADDRESS = "SET_ADDRESS",
+  LOAD_PORTFOLIO_STATE = "LOAD_PORTFOLIO_STATE",
   PUSH_PORTFOLIO = "PUSH_PORTFOLIO",
+  PUSH_TRANSACTIONS = "PUSH_TRANSACTIONS",
   BUILD_ASSET_CHART_DATA = "BUILD_ASSET_CHART_DATA",
+  BUILD_TRANSACTION_TABLE_DATA = "BUILD_TRANSACTION_TABLE_DATA",
   ACK_BOOT = "ACK_BOOT",
   ACK_REQUESTED_ASSET_LOAD = "ACK_REQUESTED_ASSET_LOAD",
+  ACK_REQUESTED_PORTFOLIO_LOAD = "ACK_REQUESTED_PORTFOLIO_LOAD",
 }
 
 type OverviewActions =
-  | { type: OverviewAction.LOAD_ASSET_STATE; address: string }
+  | { type: OverviewAction.LOAD_ADDRESS_STATE; address: string }
+  | { type: OverviewAction.LOAD_PORTFOLIO_STATE; address: Address }
   | { type: OverviewAction.SET_ADDRESS; lookup: NSLookupState }
-  | { type: OverviewAction.PUSH_PORTFOLIO; portfolio: FetchState<{ address: string; portfolio: AssetPortfolio }> }
+  | { type: OverviewAction.PUSH_PORTFOLIO; portfolio: FetchState<{ address: Address; portfolio: AssetPortfolio }> }
+  | {
+      type: OverviewAction.PUSH_TRANSACTIONS;
+      transactions: FetchState<{ address: Address; transactions: Transaction[] }>;
+    }
   | {
       type: OverviewAction.BUILD_ASSET_CHART_DATA;
-      tokens: Record<string, TokenData>;
+      tokens: Record<Contract, TokenData>;
       portfolio: AssetPortfolio;
       prices?: PriceLookupCache;
     }
+  | { type: OverviewAction.BUILD_TRANSACTION_TABLE_DATA; transactions: Transaction[] }
   | { type: OverviewAction.ACK_BOOT }
-  | { type: OverviewAction.ACK_REQUESTED_ASSET_LOAD };
+  | { type: OverviewAction.ACK_REQUESTED_ASSET_LOAD }
+  | { type: OverviewAction.ACK_REQUESTED_PORTFOLIO_LOAD };
 
 type OverviewState = {
   eventHost: OverviewEvents;
   addressState: NSLookupState;
+  transactionTableData: TransactionTableData[];
   assetTableData: AssetTableData[];
   assetPieData: AssetPieData[];
   assetPortfolioValue: number;
   assetPortfolioState: FetchState<{ address: string; portfolio: AssetPortfolio }>;
-  transactionDataState: Record<string, string>; // TODO
+  transactionDataState: FetchState<{ address: string; transactions: Transaction[] }>;
 };
 
 const initialEventHost: OverviewEvents = {
   type: OverviewEvent.LISTENING,
 };
 
-export const initialAssetPortfolioState: FetchState<{ address: string; portfolio: AssetPortfolio }> = {
+const initialAssetPortfolioState: FetchState<{ address: string; portfolio: AssetPortfolio }> = {
   type: FetchStates.EMPTY,
   data: { address: "", portfolio: {} },
+};
+
+const initialTransactionsState: FetchState<{ address: string; transactions: Transaction[] }> = {
+  type: FetchStates.EMPTY,
+  data: { address: "", transactions: [] },
 };
 
 const initialOverviewState = {
   eventHost: { type: OverviewEvent.SYN_BOOT } as OverviewEvents,
   addressState: initialNSLookupState,
   assetPortfolioState: initialAssetPortfolioState,
+  transactionDataState: initialTransactionsState,
+  transactionTableData: [],
   assetTableData: [],
   assetPieData: [],
   assetPortfolioValue: 0,
-  transactionDataState: {},
 };
 
 const overviewReducer = (state: OverviewState, action: OverviewActions): OverviewState => {
   switch (action.type) {
-    case OverviewAction.LOAD_ASSET_STATE:
+    case OverviewAction.LOAD_ADDRESS_STATE:
       return { ...state, eventHost: { type: OverviewEvent.SYN_REQUESTED_ASSET_LOAD, address: action.address } };
+    case OverviewAction.LOAD_PORTFOLIO_STATE:
+      const event = { type: OverviewEvent.SYN_REQUESTED_PORTFOLIO_LOAD, address: action.address };
+      return { ...state, eventHost: event };
     case OverviewAction.SET_ADDRESS:
       return { ...state, addressState: action.lookup };
     case OverviewAction.PUSH_PORTFOLIO:
       return { ...state, assetPortfolioState: { ...state.assetPortfolioState, ...action.portfolio } };
+    case OverviewAction.PUSH_TRANSACTIONS:
+      return { ...state, transactionDataState: { ...state.transactionDataState, ...action.transactions } };
     case OverviewAction.BUILD_ASSET_CHART_DATA:
-      const assetTableData = buildTableData(action.tokens, action.portfolio, action.prices);
+      const assetTableData = buildAssetTableData(action.tokens, action.portfolio, action.prices);
       const assetPieData = buildPieData(action.tokens, action.portfolio, action.prices);
       const totalValue = getTotalPortfolioValue(action.portfolio, action.prices);
       return { ...state, assetTableData: assetTableData, assetPieData: assetPieData, assetPortfolioValue: totalValue };
+    case OverviewAction.BUILD_TRANSACTION_TABLE_DATA:
+      const transactionTableData = buildTransactionTableData(action.transactions);
+      return { ...state, transactionTableData: transactionTableData };
     case OverviewAction.ACK_BOOT:
     case OverviewAction.ACK_REQUESTED_ASSET_LOAD:
+    case OverviewAction.ACK_REQUESTED_PORTFOLIO_LOAD:
       return { ...state, eventHost: initialEventHost };
   }
 };
@@ -170,6 +214,17 @@ const Overview = (): JSX.Element => {
     }
   };
 
+  const getPieChart = (): JSX.Element => {
+    switch (state.assetPortfolioState.type) {
+      case FetchStates.EMPTY:
+      case FetchStates.ERROR:
+      case FetchStates.FETCHING:
+        return <SkeletonPieData thickness="10px" width="100px" height="100px" />;
+      case FetchStates.SUCCESS:
+        return <AssetsPie height={100} width={100} data={state.assetPieData} />;
+    }
+  };
+
   const getPortfolioTable = (): JSX.Element => {
     switch (state.assetPortfolioState.type) {
       case FetchStates.EMPTY:
@@ -188,15 +243,29 @@ const Overview = (): JSX.Element => {
     }
   };
 
+  const getTransactionTable = (): JSX.Element => {
+    switch (state.transactionDataState.type) {
+      case FetchStates.EMPTY:
+      case FetchStates.FETCHING:
+        return <LoaderSkeleton type="Paragraphs" bars={8} thickness={20} width="100%" height="200" />;
+      case FetchStates.ERROR:
+        return <LoaderSkeleton type="Bars" />;
+      case FetchStates.SUCCESS:
+        return (
+          <TransactionsTable address={state.transactionDataState.data.address} data={state.transactionTableData} />
+        );
+    }
+  };
+
   const navigateInvalid = useCallback(() => {
     if (!props.account && dappContext.state.activeAddress && dappContext.state.activeAddress.data) {
       const path = `/${PAGE_OVERVIEW}/${dappContext.state.activeAddress.data.address}`;
       appContext.dispatch({ type: AppAction.NAVIGATE, path, opts: { replace: true } });
-      dispatch({ type: OverviewAction.LOAD_ASSET_STATE, address: `${dappContext.state.activeAddress.data.address}` });
+      dispatch({ type: OverviewAction.LOAD_ADDRESS_STATE, address: `${dappContext.state.activeAddress.data.address}` });
     } else if (props.account && state.addressState.data && props.account !== state.addressState.data.address) {
       const path = `/${PAGE_OVERVIEW}/${props.account}`;
       appContext.dispatch({ type: AppAction.NAVIGATE, path, opts: { replace: true } });
-      dispatch({ type: OverviewAction.LOAD_ASSET_STATE, address: props.account });
+      dispatch({ type: OverviewAction.LOAD_ADDRESS_STATE, address: props.account });
     }
   }, [appContext, dappContext.state.activeAddress, props.account, state.addressState.data]);
 
@@ -228,48 +297,92 @@ const Overview = (): JSX.Element => {
     [dappContext, isMounted, networkContracts]
   );
 
-  const resolveAddressBalances = useCallback(
-    async (nsLookupState: NSLookupState) => {
-      switch (nsLookupState.type) {
-        case NSLookupStates.NO_RESOLVE:
-        case NSLookupStates.SUCCESS:
-          const contractAddresses = Object.values(networkContracts).map((record) => record.contract);
+  const returnedTransactionHistory = useCallback(
+    (response: FetchState<{ address: string; transactions: Transaction[] }>) => {
+      if (isMounted.current) {
+        dispatch({ type: OverviewAction.PUSH_TRANSACTIONS, transactions: response });
 
-          if (nsLookupState.data.address && balanceChecker.instance) {
-            await fetchBalances(
-              nsLookupState.data.address,
-              contractAddresses,
-              balanceChecker.instance,
-              dappContext.state.addressPortfolioCache,
-              DEFAULT_REFRESH_INTERVAL
-            )(returnedAssetPortfolio).catch((e) => {
-              navigateInvalid();
+        if (response.type === FetchStates.SUCCESS) {
+          const cache = dappContext.state.transactionCache[response.data.address];
+
+          if (!cache || !isCacheValid(cache.age, DEFAULT_REFRESH_INTERVAL)) {
+            dappContext.dispatch({
+              type: DappAction.ADD_CACHE_TRANSACTIONS,
+              address: response.data.address,
+              transactions: response.data.transactions,
             });
           }
-          return;
-        case NSLookupStates.EMPTY:
-        case NSLookupStates.ERROR:
-        case NSLookupStates.FETCHING:
-          return;
+
+          dispatch({
+            type: OverviewAction.BUILD_TRANSACTION_TABLE_DATA,
+            transactions: response.data.transactions,
+          });
+        }
+      }
+    },
+    [dappContext, isMounted]
+  );
+
+  const resolvePortfolioData = useCallback(
+    async (address: Address) => {
+      if (balanceChecker.instance) {
+        await fetchBalances(
+          address,
+          Object.values(networkContracts).map((record) => record.contract),
+          balanceChecker.instance,
+          dappContext.state.addressPortfolioCache,
+          DEFAULT_REFRESH_INTERVAL
+        )(returnedAssetPortfolio).catch((e) => {
+          navigateInvalid();
+        });
+
+        await fetchTransactionHistory(
+          address,
+          dappContext.etherScanProvider,
+          dappContext.state.transactionCache,
+          DEFAULT_REFRESH_INTERVAL
+        )(returnedTransactionHistory).catch((e) => {
+          // TODO
+        });
       }
     },
     [
-      networkContracts,
       balanceChecker.instance,
+      dappContext.etherScanProvider,
       dappContext.state.addressPortfolioCache,
-      returnedAssetPortfolio,
+      dappContext.state.transactionCache,
+      networkContracts,
       navigateInvalid,
+      returnedAssetPortfolio,
+      returnedTransactionHistory,
     ]
   );
 
-  const loadAssetState = useCallback(
+  const loadAddressState = useCallback(
     async (address: string) => {
       await dappContext
         .resolveAddress(
           address,
           Networks.ETHEREUM
         )((lookup) => {
-          isMounted.current && dispatch({ type: OverviewAction.SET_ADDRESS, lookup: lookup });
+          if (isMounted.current) {
+            dispatch({ type: OverviewAction.SET_ADDRESS, lookup: lookup });
+
+            switch (lookup.type) {
+              case NSLookupStates.EMPTY:
+              case NSLookupStates.ERROR:
+              case NSLookupStates.FETCHING:
+                return;
+              case NSLookupStates.NO_RESOLVE:
+              case NSLookupStates.SUCCESS:
+                if (lookup.data.address) {
+                  dispatch({ type: OverviewAction.LOAD_PORTFOLIO_STATE, address: lookup.data.address });
+                } else {
+                  navigateInvalid();
+                }
+                return;
+            }
+          }
         })
         .catch((e) => {
           navigateInvalid();
@@ -282,18 +395,17 @@ const Overview = (): JSX.Element => {
     switch (state.eventHost.type) {
       case OverviewEvent.SYN_BOOT:
         dispatch({ type: OverviewAction.ACK_BOOT });
-        return props.account && dispatch({ type: OverviewAction.LOAD_ASSET_STATE, address: props.account });
+        return props.account && dispatch({ type: OverviewAction.LOAD_ADDRESS_STATE, address: props.account });
       case OverviewEvent.SYN_REQUESTED_ASSET_LOAD:
-        loadAssetState(state.eventHost.address);
+        loadAddressState(state.eventHost.address);
         return dispatch({ type: OverviewAction.ACK_REQUESTED_ASSET_LOAD });
+      case OverviewEvent.SYN_REQUESTED_PORTFOLIO_LOAD:
+        resolvePortfolioData(state.eventHost.address);
+        return dispatch({ type: OverviewAction.ACK_REQUESTED_PORTFOLIO_LOAD });
       case OverviewEvent.LISTENING:
         return navigateInvalid();
     }
-  }, [state.eventHost, props.account, navigateInvalid, loadAssetState]);
-
-  useEffect(() => {
-    resolveAddressBalances(state.addressState);
-  }, [state.addressState, resolveAddressBalances]);
+  }, [state.eventHost, props.account, loadAddressState, resolvePortfolioData, navigateInvalid]);
 
   useEffect(() => {
     listenEventBus();
@@ -326,9 +438,7 @@ const Overview = (): JSX.Element => {
                 <em>Active Since: TODO</em>
               </figcaption>
             </figure>
-            <figure>
-              <AssetsPie height={100} width={100} data={state.assetPieData} />
-            </figure>
+            <figure>{getPieChart()}</figure>
           </SummaryStyle>
         </header>
       </Section>
@@ -342,9 +452,15 @@ const Overview = (): JSX.Element => {
           </Accordion.Item>
           <Accordion.Item eventKey="1">
             <Accordion.Header>
-              <h2>{t("transactions")}</h2>
+              <h2>NFTs</h2>
             </Accordion.Header>
             <Accordion.Body></Accordion.Body>
+          </Accordion.Item>
+          <Accordion.Item eventKey="2">
+            <Accordion.Header>
+              <h2>{t("transactions")}</h2>
+            </Accordion.Header>
+            <Accordion.Body>{getTransactionTable()}</Accordion.Body>
           </Accordion.Item>
         </Accordion>
       </Section>
