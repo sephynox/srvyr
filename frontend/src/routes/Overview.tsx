@@ -2,13 +2,13 @@ import React, { useCallback, useContext, useEffect, useReducer } from "react";
 import { useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
-import { Accordion } from "react-bootstrap";
+import { Accordion, Button } from "react-bootstrap";
 import styled from "styled-components";
 
 import { ThemeEngine } from "../styles/GlobalStyle";
 import { Section } from "../styles/Section";
 import { AppAction, AppContext } from "../App";
-import { DappAction, DappContext, getBlockieState } from "../Dapp";
+import { DappAction, DappActions, DappContext, getBlockieState } from "../Dapp";
 import { PAGE_OVERVIEW } from "../Routes";
 import usePriced from "../services/price-daemon";
 import {
@@ -100,6 +100,7 @@ type OverviewActions =
 type OverviewState = {
   eventHost: OverviewEvents;
   addressState: NSLookupState;
+  addressAge: number;
   transactionTableData: TransactionTableData[];
   assetTableData: AssetTableData[];
   assetPieData: AssetPieData[];
@@ -131,6 +132,7 @@ const initialOverviewState = {
   assetTableData: [],
   assetPieData: [],
   assetPortfolioValue: 0,
+  addressAge: 0,
 };
 
 const overviewReducer = (state: OverviewState, action: OverviewActions): OverviewState => {
@@ -153,7 +155,8 @@ const overviewReducer = (state: OverviewState, action: OverviewActions): Overvie
       return { ...state, assetTableData: assetTableData, assetPieData: assetPieData, assetPortfolioValue: totalValue };
     case OverviewAction.BUILD_TRANSACTION_TABLE_DATA:
       const transactionTableData = buildTransactionTableData(action.transactions);
-      return { ...state, transactionTableData: transactionTableData };
+      const timestamp = transactionTableData[transactionTableData.length - 1].timestamp;
+      return { ...state, addressAge: timestamp, transactionTableData: transactionTableData };
     case OverviewAction.ACK_BOOT:
     case OverviewAction.ACK_REQUESTED_ASSET_LOAD:
     case OverviewAction.ACK_REQUESTED_PORTFOLIO_LOAD:
@@ -165,7 +168,7 @@ const Overview = (): JSX.Element => {
   const appContext = useContext(AppContext);
   const dappContext = useContext(DappContext);
   const balanceChecker = useContext(BalanceCheckerContext);
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const props = useParams();
 
   const isMounted = useIsMounted();
@@ -214,6 +217,19 @@ const Overview = (): JSX.Element => {
     }
   };
 
+  const getAddressAge = (): JSX.Element => {
+    switch (state.transactionDataState.type) {
+      case FetchStates.EMPTY:
+        return <em>...</em>;
+      case FetchStates.FETCHING:
+        return <LoaderSkeleton type="Bars" />;
+      case FetchStates.SUCCESS:
+        return <em>{Intl.DateTimeFormat(i18n.language).format(new Date(state.addressAge * 1000))}</em>;
+      case FetchStates.ERROR:
+        return <em>N/A</em>;
+    }
+  };
+
   const getPieChart = (): JSX.Element => {
     switch (state.assetPortfolioState.type) {
       case FetchStates.EMPTY:
@@ -254,6 +270,31 @@ const Overview = (): JSX.Element => {
         return (
           <TransactionsTable address={state.transactionDataState.data.address} data={state.transactionTableData} />
         );
+    }
+  };
+
+  const getFollowButton = (): JSX.Element => {
+    switch (state.addressState.type) {
+      case NSLookupStates.EMPTY:
+      case NSLookupStates.FETCHING:
+        return <LoaderSkeleton type="Bars" />;
+      case NSLookupStates.NO_RESOLVE:
+      case NSLookupStates.SUCCESS:
+        const address = state.addressState.data.address ?? "0x";
+        let text: string;
+        let action: DappActions;
+
+        if (dappContext.state.userFollowing.indexOf(address) > -1) {
+          text = "unfollow";
+          action = { type: DappAction.UNFOLLOW_ADDRESS, address };
+        } else {
+          text = "follow";
+          action = { type: DappAction.FOLLOW_ADDRESS, address };
+        }
+
+        return <Button onClick={() => dappContext.dispatch(action)}>{t(`button.${text}`)}</Button>;
+      case NSLookupStates.ERROR:
+        return <></>;
     }
   };
 
@@ -422,7 +463,10 @@ const Overview = (): JSX.Element => {
           <meta property="profile:username" content={props.account}></meta>
         </Helmet>
         <header>
-          <h1>{t("overview")}</h1>
+          <HeaderStyle>
+            <h1>{t("overview")}</h1>
+            <p>{getFollowButton()}</p>
+          </HeaderStyle>
           <SummaryStyle>
             <figure>
               <BlockieStyle size={100}>
@@ -435,7 +479,9 @@ const Overview = (): JSX.Element => {
               <figcaption>
                 <h2>{getDisplayEnsName()}</h2>
                 <h3>{getDisplayAddress()}</h3>
-                <em>Active Since: TODO</em>
+                <em>
+                  {t("active_since")}: {getAddressAge()}
+                </em>
               </figcaption>
             </figure>
             <figure>{getPieChart()}</figure>
@@ -476,6 +522,12 @@ const BlockieStyle = styled.span`
     height: ${(props: { size: number }) => (props.size ? `${props.size}px` : "100%")} !important;
     border-radius: 10%;
   }
+`;
+
+const HeaderStyle = styled.section`
+  display: flex;
+  justify-content: space-between;
+  flex-direction: row;
 `;
 
 const SummaryStyle = styled.article`

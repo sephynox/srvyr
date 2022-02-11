@@ -61,6 +61,7 @@
   "length": "Extensión",
   "last_update": "Neuestes Update",
   "summary": "El Resumen",
+  "feed": "Noticias",
   "full_story": "Historia Completa",
   "share": "Compartir",
   "references": "Los Referencios",
@@ -95,6 +96,7 @@
   "analytics": "Analítica",
   "required": "Requerido",
   "refresh": "Actualizar",
+  "active_since": "Activo Desde",
   "open_source": "Fuente Abierta",
   "table_of_contents": "Indice de Dontenidos",
   "data_privacy": "Protección de Datos",
@@ -126,6 +128,8 @@
     "loading": "Cargando",
     "sending": "Enviando",
     "retry": "Reintentar",
+    "follow": "Seguir",
+    "unfollow": "Dejar de Seguir",
     "data_updated": "Datos Actualizados",
     "data_refreshed": "Datos Actualizados",
     "send_message": "Enviar Mensaje",
@@ -152,7 +156,9 @@
   "notification": {
     "account_added": "Cuenta añadida: ",
     "account_removed": "Cuenta eliminada: ",
-    "account_switched": "Cuenta cambiada: "
+    "account_switched": "Cuenta cambiada: ",
+    "address_followed": "Siguen: ",
+    "address_unfollowed": "Dejó de seguir: "
   },
   "error": {
     "error": "error",

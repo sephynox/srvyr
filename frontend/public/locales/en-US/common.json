@@ -61,6 +61,7 @@
   "length": "Length",
   "last_update": "Last Update",
   "summary": "Summary",
+  "feed": "Feed",
   "full_story": "Full Story",
   "share": "Share",
   "references": "References",
@@ -95,6 +96,7 @@
   "analytics": "Analytics",
   "required": "Required",
   "refresh": "Refresh",
+  "active_since": "Active Since",
   "open_source": "Open Source",
   "table_of_contents": "Table of Contents",
   "data_privacy": "Privacy",
@@ -126,6 +128,8 @@
     "loading": "Loading",
     "sending": "Sending",
     "retry": "Retry",
+    "follow": "Follow",
+    "unfollow": "Unfollow",
     "data_updated": "Data Updated",
     "data_refreshed": "Data Refreshed",
     "send_message": "Send Message",
@@ -152,7 +156,9 @@
   "notification": {
     "account_added": "Account added: ",
     "account_removed": "Account removed: ",
-    "account_switched": "Account switched: "
+    "account_switched": "Account switched: ",
+    "address_followed": "Following: ",
+    "address_unfollowed": "Stopped following: "
   },
   "error": {
     "error": "error",

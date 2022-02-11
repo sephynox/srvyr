@@ -45,7 +45,7 @@ import {
 import { EthereumTokenStandards, fetchAddress as fetchEtherAddress, fetchTokens } from "./actions/Ethereum";
 import { Symfoni } from "./hardhat/SymfoniContext";
 import { BlockieState } from "./components/Blockies";
-import { isCacheValid, localStoreOr, shortDisplayAddress } from "./utils/data-helpers";
+import { isCacheValid, localStoreOr, shortDisplayAddress, spliceOrArray } from "./utils/data-helpers";
 import { useIsMounted } from "./utils/custom-hooks";
 import { EtherscanProvider } from "@ethersproject/providers";
 
@@ -76,6 +76,8 @@ export enum DappAction {
   SET_CURRENCY = "SET_CURRENCY",
   SET_ACTIVE_ADDRESS = "SET_ACTIVE_ADDRESS",
   ADD_USER_ADDRESS = "ADD_USER_ADDRESS",
+  FOLLOW_ADDRESS = "FOLLOW_ADDRESS",
+  UNFOLLOW_ADDRESS = "UNFOLLOW_ADDRESS",
   REMOVE_USER_ADDRESS = "REMOVE_USER_ADDRESS",
   RESOLVE_TOKEN_PRICES = "RESOLVE_TOKEN_PRICES",
   ADD_CACHE_ADDRESS = "ADD_CACHE_ADDRESS",
@@ -86,24 +88,30 @@ export enum DappAction {
 
 enum InternalDappAction {
   RESOLVE_TOKENS = "RESOLVE_TOKENS",
+  ACK_ADDED_ADDRESS = "ACK_ADDED_ADDRESS",
+  ACK_REMOVED_ADDRESS = "ACK_REMOVED_ADDRESS",
+  ACK_FOLLOWED_ADDRESS = "ACK_FOLLOWED_ADDRESS",
+  ACK_UNFOLLOWED_ADDRESS = "ACK_UNFOLLOWED_ADDRESS",
+  ACK_SWITCHED_PRIMARY_ADDRESS = "ACK_SWITCHED_PRIMARY_ADDRESS",
+  ACK_DISCONNECTED = "ACK_DISCONNECTED",
 }
 
 enum DappEvent {
   LISTENING = "LISTENING",
   SYN_ADDED_ADDRESS = "SYN_ADDED_ADDRESS",
   SYN_REMOVED_ADDRESS = "SYN_REMOVED_ADDRESS",
+  SYN_FOLLOWED_ADDRESS = "SYN_FOLLOWED_ADDRESS",
+  SYN_UNFOLLOWED_ADDRESS = "SYN_UNFOLLOWED_ADDRESS",
   SYN_SWITCHED_PRIMARY_ADDRESS = "SYN_SWITCHED_PRIMARY_ADDRESS",
   SYN_DISCONNECTED = "SYN_DISCONNECTED",
-  ACK_ADDED_ADDRESS = "ACK_ADDED_ADDRESS",
-  ACK_REMOVED_ADDRESS = "ACK_REMOVED_ADDRESS",
-  ACK_SWITCHED_PRIMARY_ADDRESS = "ACK_SWITCHED_PRIMARY_ADDRESS",
-  ACK_DISCONNECTED = "ACK_DISCONNECTED",
 }
 
 export type DappEvents =
   | { type: DappEvent.LISTENING }
   | { type: DappEvent.SYN_ADDED_ADDRESS; address: NSLookupState }
   | { type: DappEvent.SYN_REMOVED_ADDRESS; address: NSLookupState }
+  | { type: DappEvent.SYN_FOLLOWED_ADDRESS; address: Address }
+  | { type: DappEvent.SYN_UNFOLLOWED_ADDRESS; address: Address }
   | { type: DappEvent.SYN_SWITCHED_PRIMARY_ADDRESS; curr: NSLookupState; prev: NSLookupState }
   | { type: DappEvent.SYN_DISCONNECTED };
 
@@ -113,19 +121,24 @@ export type DappActions =
   | { type: DappAction.SET_ACTIVE_ADDRESS; address: NSLookupState }
   | { type: DappAction.ADD_USER_ADDRESS; address: NSLookupState }
   | { type: DappAction.REMOVE_USER_ADDRESS; address: number }
+  | { type: DappAction.FOLLOW_ADDRESS; address: Address }
+  | { type: DappAction.UNFOLLOW_ADDRESS; address: Address }
   | { type: DappAction.ADD_CACHE_ADDRESS; address: NSLookupState }
   | { type: DappAction.ADD_CACHE_PORTFOLIO; address: Address; portfolio: AssetPortfolio }
   | { type: DappAction.ADD_CACHE_TRANSACTIONS; address: Address; transactions: Transaction[] }
   | { type: DappAction.RESOLVE_TOKEN_PRICES; prices: FetchState<Record<Contract, PriceData>> }
   | { type: InternalDappAction.RESOLVE_TOKENS; tokens: FetchState<TokenData[]> }
-  | { type: DappEvent.ACK_ADDED_ADDRESS }
-  | { type: DappEvent.ACK_REMOVED_ADDRESS }
-  | { type: DappEvent.ACK_SWITCHED_PRIMARY_ADDRESS }
-  | { type: DappEvent.ACK_DISCONNECTED };
+  | { type: InternalDappAction.ACK_ADDED_ADDRESS }
+  | { type: InternalDappAction.ACK_REMOVED_ADDRESS }
+  | { type: InternalDappAction.ACK_SWITCHED_PRIMARY_ADDRESS }
+  | { type: InternalDappAction.ACK_DISCONNECTED }
+  | { type: InternalDappAction.ACK_FOLLOWED_ADDRESS }
+  | { type: InternalDappAction.ACK_UNFOLLOWED_ADDRESS };
 
 type DappState = {
   eventHost: DappEvents;
   userCurrency: Currency;
+  userFollowing: Address[];
   userAddresses: NSLookupState[];
   activeAddress: NSLookupState;
   tokenLookupState: FetchState<TokenData[]>;
@@ -157,6 +170,7 @@ const hardStateResets = {
 
 const initialDappState: DappState = localStoreOr("dappState", {
   userAddresses: [],
+  userFollowing: [],
   userCurrency: systemCurrencies[Constants.DEFAULT_CURRENCY],
   addressPortfolioCache: initialAssetPortfolioCache,
   activeAddress: initialNSLookupState,
@@ -184,6 +198,12 @@ const dappReducer = (state: DappState, action: DappActions): DappState => {
       const addresses = Array.from(new Set([action.address, ...state.userAddresses]));
       event = { type: DappEvent.SYN_ADDED_ADDRESS, address: action.address };
       return { ...state, eventHost: event, userAddresses: addresses };
+    case DappAction.FOLLOW_ADDRESS:
+      event = { type: DappEvent.SYN_FOLLOWED_ADDRESS, address: action.address };
+      return { ...state, eventHost: event, userFollowing: [...state.userFollowing, action.address] };
+    case DappAction.UNFOLLOW_ADDRESS:
+      event = { type: DappEvent.SYN_UNFOLLOWED_ADDRESS, address: action.address };
+      return { ...state, eventHost: event, userFollowing: spliceOrArray(action.address, state.userFollowing) };
     case DappAction.REMOVE_USER_ADDRESS:
       const prunedAddress = state.userAddresses.splice(action.address, 1).pop();
       event = { type: DappEvent.SYN_ADDED_ADDRESS, address: prunedAddress ?? initialNSLookupState };
@@ -230,10 +250,12 @@ const dappReducer = (state: DappState, action: DappActions): DappState => {
         default:
           return state;
       }
-    case DappEvent.ACK_ADDED_ADDRESS:
-    case DappEvent.ACK_REMOVED_ADDRESS:
-    case DappEvent.ACK_SWITCHED_PRIMARY_ADDRESS:
-    case DappEvent.ACK_DISCONNECTED:
+    case InternalDappAction.ACK_ADDED_ADDRESS:
+    case InternalDappAction.ACK_REMOVED_ADDRESS:
+    case InternalDappAction.ACK_SWITCHED_PRIMARY_ADDRESS:
+    case InternalDappAction.ACK_DISCONNECTED:
+    case InternalDappAction.ACK_FOLLOWED_ADDRESS:
+    case InternalDappAction.ACK_UNFOLLOWED_ADDRESS:
       return { ...state, eventHost: { type: DappEvent.LISTENING } };
   }
 };
@@ -377,7 +399,7 @@ const Dapp: React.FunctionComponent = (): JSX.Element => {
           message: `${t("notification.account_added")}${shortDisplayAddress(state.eventHost.address.data?.address)}`,
           toast: ToasterTypes.SUCCESS,
         });
-        return dispatch({ type: DappEvent.ACK_ADDED_ADDRESS });
+        return dispatch({ type: InternalDappAction.ACK_ADDED_ADDRESS });
       case DappEvent.SYN_REMOVED_ADDRESS:
         appContext.dispatch({
           type: AppAction.TOAST,
@@ -391,21 +413,35 @@ const Dapp: React.FunctionComponent = (): JSX.Element => {
             address: state.userAddresses[state.userAddresses.length - 1],
           });
         }
-        return dispatch({ type: DappEvent.ACK_REMOVED_ADDRESS });
+        return dispatch({ type: InternalDappAction.ACK_REMOVED_ADDRESS });
       case DappEvent.SYN_SWITCHED_PRIMARY_ADDRESS:
         appContext.dispatch({
           type: AppAction.TOAST,
           message: `${t("notification.account_switched")}${shortDisplayAddress(state.eventHost.curr.data?.address)}`,
           toast: ToasterTypes.SUCCESS,
         });
-        return dispatch({ type: DappEvent.ACK_SWITCHED_PRIMARY_ADDRESS });
+        return dispatch({ type: InternalDappAction.ACK_SWITCHED_PRIMARY_ADDRESS });
       case DappEvent.SYN_DISCONNECTED:
         appContext.dispatch({
           type: AppAction.TOAST,
           message: t("disconnected"),
           toast: ToasterTypes.ERROR,
         });
-        return dispatch({ type: DappEvent.ACK_DISCONNECTED });
+        return dispatch({ type: InternalDappAction.ACK_DISCONNECTED });
+      case DappEvent.SYN_FOLLOWED_ADDRESS:
+        appContext.dispatch({
+          type: AppAction.TOAST,
+          message: `${t("notification.address_followed")}${shortDisplayAddress(state.eventHost.address)}`,
+          toast: ToasterTypes.SUCCESS,
+        });
+        return dispatch({ type: InternalDappAction.ACK_FOLLOWED_ADDRESS });
+      case DappEvent.SYN_UNFOLLOWED_ADDRESS:
+        appContext.dispatch({
+          type: AppAction.TOAST,
+          message: `${t("notification.address_unfollowed")}${shortDisplayAddress(state.eventHost.address)}`,
+          toast: ToasterTypes.SUCCESS,
+        });
+        return dispatch({ type: InternalDappAction.ACK_UNFOLLOWED_ADDRESS });
       case DappEvent.LISTENING:
       default:
         return;

@@ -1,8 +1,9 @@
 import { Currency, FiatCurrency } from "@usedapp/core";
-import { faHome, faArchway, faAddressCard } from "@fortawesome/free-solid-svg-icons";
+import { faHome, faArchway, faAddressCard, faPodcast } from "@fortawesome/free-solid-svg-icons";
 
 import Home from "./routes/Home";
 import Overview from "./routes/Overview";
+import Feed from "./routes/Feed";
 import About from "./routes/About";
 
 import { NavBlock } from "./layout/Navigation";
@@ -25,6 +26,13 @@ export const dappNavLinks: Array<NavBlock> = [
     to: "overview",
     exact: true,
     component: Overview,
+  },
+  {
+    text: "feed",
+    icon: faPodcast,
+    to: "feed",
+    exact: true,
+    component: Feed,
   },
   {
     text: "about",

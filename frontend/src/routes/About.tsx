@@ -10,7 +10,7 @@ import { Section } from "../styles/Section";
 import Quote from "../components/Quote";
 import Theme from "../styles/Themes";
 
-const Overview = (): JSX.Element => {
+const About = (): JSX.Element => {
   const appContext = useContext(AppContext);
   const { t } = useTranslation();
   const theme: Theme = useTheme();
@@ -59,7 +59,7 @@ const Overview = (): JSX.Element => {
   );
 };
 
-export default Overview;
+export default About;
 
 const LogoStyle = styled.figure`
   width: 100%;

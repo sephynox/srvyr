@@ -61,6 +61,7 @@
   "length": "Länge",
   "last_update": "Zuletzt Aktualisiert",
   "summary": "Zusammenfassung",
+  "feed": "Neuigkeiten",
   "full_story": "Kompletter Artikel",
   "share": "Teilen",
   "references": "Verweise",
@@ -95,6 +96,7 @@
   "analytics": "Analytik",
   "required": "Erforderlich",
   "refresh": "Aktualisierung",
+  "active_since": "Aktiv Seit",
   "open_source": "Open Source",
   "table_of_contents": "Inhaltsverzeichnis",
   "data_privacy": "Datenschutz",
@@ -126,6 +128,8 @@
     "loading": "Ladeinformationen",
     "sending": "Senden",
     "retry": "Erneut Versuchen",
+    "follow": "Folgen",
+    "unfollow": "Nicht Mehr Folgen",
     "data_updated": "Daten Aktualisiert",
     "data_refreshed": "Daten Aufgefrischt",
     "send_message": "Sende Nachricht",
@@ -152,7 +156,9 @@
   "notification": {
     "account_added": "Konto hinzugefügt: ",
     "account_removed": "Konto entfernt: ",
-    "account_switched": "Konto geändert: "
+    "account_switched": "Konto geändert: ",
+    "address_followed": "Verfolgen: ",
+    "address_unfollowed": "Gestoppte Verfolgung: "
   },
   "error": {
     "error": "error",

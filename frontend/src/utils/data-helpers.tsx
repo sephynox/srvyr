@@ -13,6 +13,11 @@ export const chunkArray = <T,>(array: Array<T>, chunkSize: number): Array<Array<
   return chunkedArray;
 };
 
+export const spliceOrArray = <T,>(val: T, array: T[]): T[] => {
+  const remove = array.indexOf(val);
+  return remove > -1 ? array.splice(remove, 1) : array;
+};
+
 // Thanks https://stackoverflow.com/a/61414961/8177368
 export type RecordableKeys<T> = {
   [K in keyof T]: T[K] extends string | number | symbol ? K : never;
@@ -61,7 +66,13 @@ export const shortDisplayAddress = (address?: string | null) => {
 };
 
 export const localStoreOr = <T,>(key: string, fallback: T): T => {
-  return JSON.parse(localStorage.getItem(key) ?? "null") || fallback;
+  const store = localStorage.getItem(key);
+
+  if (store) {
+    return { ...fallback, ...JSON.parse(store) };
+  } else {
+    return fallback;
+  }
 };
 
 export const createEnumChecker = <T extends string, TEnumValue extends string>(enumVariable: {
@@ -81,15 +92,13 @@ export const formatPrice = (n: number | bigint, r = 2, lang: string, currency: s
 
 export const datedRecordFromArray = <T extends { timestamp: number }>(data: T[]): Record<number, T[]> => {
   const result: Record<number, T[]> = {};
-  data
-    .sort((a, b) => b.timestamp - a.timestamp)
-    .forEach((entry) => {
-      const date = new Date(new Date(entry.timestamp * 1000).toDateString()).getTime();
-      if (!result[date]) {
-        result[date] = [entry];
-      } else {
-        result[date].push(entry);
-      }
-    });
+  data.forEach((entry) => {
+    const date = new Date(new Date(entry.timestamp * 1000).toDateString()).getTime();
+    if (!result[date]) {
+      result[date] = [entry];
+    } else {
+      result[date].push(entry);
+    }
+  });
   return result;
 };

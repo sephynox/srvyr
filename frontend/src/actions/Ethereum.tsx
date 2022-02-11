@@ -170,6 +170,25 @@ export const fetchTokens = (type: string) => async (dispatch: Dispatch<FetchStat
     );
 };
 
+export const fetchTokenInterfaces = () => async (dispatch: Dispatch<FetchState<Record<string, []>>>) => {
+  dispatch({ type: FetchStates.FETCHING });
+
+  return fetch("/data/ABI.json")
+    .then((response) => response.json())
+    .then(
+      (result) => {
+        if (!result) {
+          dispatch({ type: FetchStates.ERROR, error: TokenLookupErrors.FAILED });
+        } else {
+          dispatch({ type: FetchStates.SUCCESS, data: result });
+        }
+      },
+      (error) => {
+        dispatch({ type: FetchStates.ERROR, error: error.message });
+      }
+    );
+};
+
 export const fetchBalances =
   (
     address: Address,
@@ -228,8 +247,9 @@ export const fetchTransactionHistory =
       promise = Promise.resolve(cache[address].data).then((transactions) => transactions);
     } else {
       promise = provider.getHistory(address).then((result) => {
-        return result.map((t) =>
-          Object({
+        return result.map((t) => {
+          //const decodedInput = inter.parseTransaction({ data: tx.data, value: tx.value});
+          return Object({
             network: Networks.ETHEREUM,
             hash: t.hash,
             to: t.to ?? "N/A",
@@ -237,8 +257,8 @@ export const fetchTransactionHistory =
             data: t.data,
             type: t.type?.toString(),
             timestamp: t.timestamp ?? 0,
-          })
-        );
+          });
+        });
       });
     }
 

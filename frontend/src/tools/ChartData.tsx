@@ -21,13 +21,15 @@ export const buildAssetTableData = (
 };
 
 export const buildTransactionTableData = (transactions: Transaction[]): TransactionTableData[] => {
-  return transactions.map((t) => ({
-    timestamp: t.timestamp,
-    type: t.type,
-    from: t.from,
-    to: t.to,
-    data: t.data,
-  }));
+  return transactions
+    .map((t) => ({
+      timestamp: t.timestamp,
+      type: t.type,
+      from: t.from,
+      to: t.to,
+      data: t.data,
+    }))
+    .sort((a, b) => b.timestamp - a.timestamp);
 };
 
 export const buildPieData = (
