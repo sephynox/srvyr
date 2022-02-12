@@ -10,6 +10,7 @@ import styled from "styled-components";
 import { ThemeEngine } from "../styles/GlobalStyle";
 import { datedRecordFromArray, formatPrice, shortDisplayAddress, shortTransactionHash } from "../utils/data-helpers";
 import { Blockie, BlockieState } from "./Blockies";
+import { Copy } from "./IconButtons";
 
 type Props = {
   data: AssetTableData[];
@@ -173,6 +174,7 @@ export const TransactionsTable: React.FunctionComponent<TransactionTableProps> =
     <address>
       <Blockie skeleton={<></>} state={BlockieState.SUCCESS} address={addr} />
       {uri ? <a href={uri.replace("{}", addr)}>{shortDisplayAddress(addr)}</a> : shortDisplayAddress(addr)}
+      <Copy copyText={t("copied")} tooltip={t("copy")} text={addr} margin="0 0 0 10px" />
     </address>
   );
 
@@ -218,14 +220,17 @@ export const TransactionsTable: React.FunctionComponent<TransactionTableProps> =
           <div>
             <section>
               <em>Tx Hash</em>
-              <a href={transactionPath.replace("{}", record.hash)} target="_blank" rel="noreferrer">
-                {shortTransactionHash(record.hash)}
-              </a>
+              <span>
+                <a href={transactionPath.replace("{}", record.hash)} target="_blank" rel="noreferrer">
+                  {shortTransactionHash(record.hash)}
+                </a>
+                <Copy copyText={t("copied")} tooltip={t("copy")} text={record.hash} margin="0 0 0 10px" />
+              </span>
             </section>
             {record.fee && (
               <section>
                 <em>{t("fee")}</em>
-                <span>{record.fee}</span>
+                <span>{record.fee ?? "N/A"}</span>
               </section>
             )}
             {record.extras &&
@@ -368,6 +373,7 @@ const TransactionRowStyle = styled.article`
   }
 
   section > em {
+    text-align: left;
     color: ${(props: ThemeEngine) => props.theme.textSubdued};
   }
 
@@ -389,17 +395,50 @@ const TransactionRowStyle = styled.article`
     flex: 0 0 33.333333%;
   }
 
+  @media screen and (max-width: 992px) {
+    & details > div {
+      & section {
+        max-width: 50%;
+        flex: 0 0 50%;
+        justify-content: space-between;
+      }
+
+      & section > em {
+        text-align: left;
+      }
+    }
+  }
+
   @media screen and (max-width: 768px) {
     & figure,
     section {
-      flex: 0 0 33.333333%;
+      flex: 0 0 50%;
     }
 
-    *:nth-child(3) {
-      margin-left: 45px;
+    & details > div {
+      & section {
+        max-width: 100%;
+        flex: 0 0 100%;
+      }
+
+      & section > em {
+        text-align: left;
+      }
+    }
+  }
+
+  @media screen and (max-width: 400px) {
+    & div,
+    hr {
+      margin-left: 0px;
     }
 
-    *:nth-child(4) {
+    & figure,
+    section {
+      flex: 0 0 100%;
+    }
+
+    & details {
       margin-left: 0;
     }
   }

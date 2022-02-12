@@ -260,10 +260,10 @@ export const fetchTransactionHistory =
             fee: t.gasPrice ? `${ethers.utils.formatEther(t.gasPrice)} ${nativeAsset[Networks.ETHEREUM]}` : undefined,
             timestamp: t.timestamp ?? 0,
             extras: {
-              block_hash: t.blockHash,
               block_number: t.blockNumber,
               confirmations: t.confirmations,
               gas_limit: ethers.utils.formatEther(t.gasLimit),
+              block_hash: t.blockHash,
             },
           });
         });

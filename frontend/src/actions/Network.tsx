@@ -50,6 +50,13 @@ export type TokenLookupCache = ExpiringCache & {
   contract: Record<Contract, TokenData>;
 };
 
+export type TokenInterfacesCache = Record<
+  Networks,
+  ExpiringCache & {
+    data: Record<string, unknown>;
+  }
+>;
+
 export type PriceLookupCache = Record<
   Contract,
   ExpiringCache & {
@@ -157,6 +164,13 @@ export const initialTokenLookupCache: TokenLookupCache = {
   name: {},
   symbol: {},
   contract: {},
+};
+
+export const initialTokenInterfacesCache: TokenInterfacesCache = {
+  [Networks.ETHEREUM]: {
+    age: 0,
+    data: {},
+  },
 };
 
 export const initialAssetPortfolioCache: AssetPortfolioCache = {};

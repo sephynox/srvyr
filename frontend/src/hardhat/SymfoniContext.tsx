@@ -6,10 +6,10 @@ import React, { useEffect, useState } from "react";
 import Web3Modal, { IProviderOptions } from "web3modal";
 import { BalanceChecker } from "./typechain/BalanceChecker";
 import { BalanceChecker__factory } from "./typechain/factories/BalanceChecker__factory";
-import { TestToken } from "./typechain/TestToken";
-import { TestToken__factory } from "./typechain/factories/TestToken__factory";
 import { TestNFT } from "./typechain/TestNFT";
 import { TestNFT__factory } from "./typechain/factories/TestNFT__factory";
+import { TestToken } from "./typechain/TestToken";
+import { TestToken__factory } from "./typechain/factories/TestToken__factory";
 import { ERC20 } from "./typechain/ERC20";
 import { ERC20__factory } from "./typechain/factories/ERC20__factory";
 import { ERC721 } from "./typechain/ERC721";
@@ -34,8 +34,8 @@ const defaultSymfoniContext: SymfoniContextInterface = {
 };
 export const SymfoniContext = React.createContext<SymfoniContextInterface>(defaultSymfoniContext);
 export const BalanceCheckerContext = React.createContext<SymfoniBalanceChecker>(emptyContract);
-export const TestTokenContext = React.createContext<SymfoniTestToken>(emptyContract);
 export const TestNFTContext = React.createContext<SymfoniTestNFT>(emptyContract);
+export const TestTokenContext = React.createContext<SymfoniTestToken>(emptyContract);
 export const ERC20Context = React.createContext<SymfoniERC20>(emptyContract);
 export const ERC721Context = React.createContext<SymfoniERC721>(emptyContract);
 
@@ -58,14 +58,14 @@ export interface SymfoniBalanceChecker {
     factory?: BalanceChecker__factory;
 }
 
-export interface SymfoniTestToken {
-    instance?: TestToken;
-    factory?: TestToken__factory;
-}
-
 export interface SymfoniTestNFT {
     instance?: TestNFT;
     factory?: TestNFT__factory;
+}
+
+export interface SymfoniTestToken {
+    instance?: TestToken;
+    factory?: TestToken__factory;
 }
 
 export interface SymfoniERC20 {
@@ -93,8 +93,8 @@ export const Symfoni: React.FC<SymfoniProps> = ({
     const [fallbackProvider] = useState<string | undefined>(undefined);
     const [providerPriority, setProviderPriority] = useState<string[]>(["web3modal", "hardhat"]);
     const [BalanceChecker, setBalanceChecker] = useState<SymfoniBalanceChecker>(emptyContract);
-    const [TestToken, setTestToken] = useState<SymfoniTestToken>(emptyContract);
     const [TestNFT, setTestNFT] = useState<SymfoniTestNFT>(emptyContract);
+    const [TestToken, setTestToken] = useState<SymfoniTestToken>(emptyContract);
     const [ERC20, setERC20] = useState<SymfoniERC20>(emptyContract);
     const [ERC721, setERC721] = useState<SymfoniERC721>(emptyContract);
     useEffect(() => {
@@ -177,8 +177,8 @@ export const Symfoni: React.FC<SymfoniProps> = ({
             }
             const finishWithContracts = (text: string) => {
                 setBalanceChecker(getBalanceChecker(_provider, _signer))
-                setTestToken(getTestToken(_provider, _signer))
                 setTestNFT(getTestNFT(_provider, _signer))
+                setTestToken(getTestToken(_provider, _signer))
                 setERC20(getERC20(_provider, _signer))
                 setERC721(getERC721(_provider, _signer))
                 finish(text)
@@ -218,20 +218,20 @@ export const Symfoni: React.FC<SymfoniProps> = ({
         return contract
     }
         ;
-    const getTestToken = (_provider: providers.Provider, _signer?: Signer) => {
-        let instance = _signer ? TestToken__factory.connect(ethers.constants.AddressZero, _signer) : TestToken__factory.connect(ethers.constants.AddressZero, _provider)
-        const contract: SymfoniTestToken = {
-            instance: instance,
-            factory: _signer ? new TestToken__factory(_signer) : undefined,
-        }
-        return contract
-    }
-        ;
     const getTestNFT = (_provider: providers.Provider, _signer?: Signer) => {
         let instance = _signer ? TestNFT__factory.connect(ethers.constants.AddressZero, _signer) : TestNFT__factory.connect(ethers.constants.AddressZero, _provider)
         const contract: SymfoniTestNFT = {
             instance: instance,
             factory: _signer ? new TestNFT__factory(_signer) : undefined,
+        }
+        return contract
+    }
+        ;
+    const getTestToken = (_provider: providers.Provider, _signer?: Signer) => {
+        let instance = _signer ? TestToken__factory.connect(ethers.constants.AddressZero, _signer) : TestToken__factory.connect(ethers.constants.AddressZero, _provider)
+        const contract: SymfoniTestToken = {
+            instance: instance,
+            factory: _signer ? new TestToken__factory(_signer) : undefined,
         }
         return contract
     }
@@ -269,8 +269,8 @@ export const Symfoni: React.FC<SymfoniProps> = ({
                 <SignerContext.Provider value={[signer, setSigner]}>
                     <CurrentAddressContext.Provider value={[currentAddress, setCurrentAddress]}>
                         <BalanceCheckerContext.Provider value={BalanceChecker}>
-                            <TestTokenContext.Provider value={TestToken}>
-                                <TestNFTContext.Provider value={TestNFT}>
+                            <TestNFTContext.Provider value={TestNFT}>
+                                <TestTokenContext.Provider value={TestToken}>
                                     <ERC20Context.Provider value={ERC20}>
                                         <ERC721Context.Provider value={ERC721}>
                                             {showLoading && loading ?
@@ -285,8 +285,8 @@ export const Symfoni: React.FC<SymfoniProps> = ({
                                             }
                                         </ERC721Context.Provider >
                                     </ERC20Context.Provider >
-                                </TestNFTContext.Provider >
-                            </TestTokenContext.Provider >
+                                </TestTokenContext.Provider >
+                            </TestNFTContext.Provider >
                         </BalanceCheckerContext.Provider >
                     </CurrentAddressContext.Provider>
                 </SignerContext.Provider>

@@ -49,6 +49,8 @@ import { isCacheValid, shortDisplayAddress } from "../utils/data-helpers";
 import { useIsMounted } from "../utils/custom-hooks";
 
 import { BalanceCheckerContext } from "./../hardhat/SymfoniContext";
+import { faEye, faEyeSlash, IconDefinition } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 const DEFAULT_REFRESH_INTERVAL = 60;
 
@@ -291,16 +293,23 @@ const Overview: React.FunctionComponent = (): JSX.Element => {
         const address = state.addressState.data.address ?? "0x";
         let text: string;
         let action: DappActions;
+        let icon: IconDefinition;
 
         if (dappContext.state.userFollowing.indexOf(address) > -1) {
           text = "unfollow";
+          icon = faEyeSlash;
           action = { type: DappAction.UNFOLLOW_ADDRESS, address };
         } else {
           text = "follow";
+          icon = faEye;
           action = { type: DappAction.FOLLOW_ADDRESS, address };
         }
 
-        return <Button onClick={() => dappContext.dispatch(action)}>{t(`button.${text}`)}</Button>;
+        return (
+          <Button onClick={() => dappContext.dispatch(action)}>
+            <FontAwesomeIcon icon={icon} /> {t(`button.${text}`)}
+          </Button>
+        );
       case NSLookupStates.ERROR:
         return <></>;
     }
