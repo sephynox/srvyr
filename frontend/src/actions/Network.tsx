@@ -4,6 +4,14 @@ export enum Networks {
   ETHEREUM = "Ethereum",
 }
 
+export type NetworkViewer = {
+  [keyof in Networks]: string;
+};
+
+export type NativeAsset = {
+  [keyof in Networks]: string;
+};
+
 export enum NSLookupErrors {
   INVALID_ADDRESS = "The address provided is not a valid address.",
   NO_ENS_SET = "No NS set for address.",
@@ -98,6 +106,8 @@ export type Transaction = {
   data: string;
   type: string;
   timestamp: number;
+  fee?: string;
+  extras: Record<string, string>;
 };
 
 export type AssetPortfolio = Record<Contract, string>;
@@ -152,6 +162,14 @@ export const initialTokenLookupCache: TokenLookupCache = {
 export const initialAssetPortfolioCache: AssetPortfolioCache = {};
 export const initialPriceLookupCache: PriceLookupCache = {};
 export const initialTransactionCache: TransactionCache = {};
+
+export const networkViewer: NetworkViewer = {
+  [Networks.ETHEREUM]: "https://etherscan.io/tx/{}",
+};
+
+export const nativeAsset: NativeAsset = {
+  [Networks.ETHEREUM]: "ETH",
+};
 
 export const addAssetPortfolio = (contracts: Contract[], amounts: string[]): AssetPortfolio => {
   const data: AssetPortfolio = {};

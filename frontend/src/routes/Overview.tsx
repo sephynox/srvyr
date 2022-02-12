@@ -19,6 +19,7 @@ import {
   FetchStates,
   initialNSLookupState,
   Networks,
+  networkViewer,
   NSLookupState,
   NSLookupStates,
   PriceLookupCache,
@@ -164,7 +165,7 @@ const overviewReducer = (state: OverviewState, action: OverviewActions): Overvie
   }
 };
 
-const Overview = (): JSX.Element => {
+const Overview: React.FunctionComponent = (): JSX.Element => {
   const appContext = useContext(AppContext);
   const dappContext = useContext(DappContext);
   const balanceChecker = useContext(BalanceCheckerContext);
@@ -237,7 +238,7 @@ const Overview = (): JSX.Element => {
       case FetchStates.FETCHING:
         return <SkeletonPieData thickness="10px" width="100px" height="100px" />;
       case FetchStates.SUCCESS:
-        return <AssetsPie height={100} width={100} data={state.assetPieData} />;
+        return <>{state.assetPieData.length > 0 && <AssetsPie height={100} width={100} data={state.assetPieData} />}</>;
     }
   };
 
@@ -259,16 +260,23 @@ const Overview = (): JSX.Element => {
     }
   };
 
-  const getTransactionTable = (): JSX.Element => {
+  const getTransactionTable = (nameState: NSLookupState): JSX.Element => {
+    const loader = <LoaderSkeleton type="Paragraphs" bars={8} thickness={20} width="100%" height="200" />;
+
     switch (state.transactionDataState.type) {
       case FetchStates.EMPTY:
       case FetchStates.FETCHING:
-        return <LoaderSkeleton type="Paragraphs" bars={8} thickness={20} width="100%" height="200" />;
+        return loader;
       case FetchStates.ERROR:
         return <LoaderSkeleton type="Bars" />;
       case FetchStates.SUCCESS:
         return (
-          <TransactionsTable address={state.transactionDataState.data.address} data={state.transactionTableData} />
+          <TransactionsTable
+            address={state.transactionDataState.data.address}
+            data={state.transactionTableData}
+            addressPath={`/${PAGE_OVERVIEW}/{}`}
+            transactionPath={nameState.data ? networkViewer[nameState.data.network] : ""}
+          />
         );
     }
   };
@@ -506,7 +514,7 @@ const Overview = (): JSX.Element => {
             <Accordion.Header>
               <h2>{t("transactions")}</h2>
             </Accordion.Header>
-            <Accordion.Body>{getTransactionTable()}</Accordion.Body>
+            <Accordion.Body>{getTransactionTable(state.addressState)}</Accordion.Body>
           </Accordion.Item>
         </Accordion>
       </Section>
@@ -514,7 +522,7 @@ const Overview = (): JSX.Element => {
   );
 };
 
-export default Overview;
+export default React.memo(Overview);
 
 const BlockieStyle = styled.span`
   & img {
@@ -528,6 +536,15 @@ const HeaderStyle = styled.section`
   display: flex;
   justify-content: space-between;
   flex-direction: row;
+
+  @media screen and (max-width: 992px) {
+    display: block;
+
+    & p {
+      text-align: right;
+      margin-bottom: 1.5rem;
+    }
+  }
 `;
 
 const SummaryStyle = styled.article`

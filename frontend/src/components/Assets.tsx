@@ -8,7 +8,8 @@ import { faArrowsAlt, faInbox, faPaperPlane, faWallet, IconDefinition } from "@f
 import styled from "styled-components";
 
 import { ThemeEngine } from "../styles/GlobalStyle";
-import { datedRecordFromArray, formatPrice, shortDisplayAddress } from "../utils/data-helpers";
+import { datedRecordFromArray, formatPrice, shortDisplayAddress, shortTransactionHash } from "../utils/data-helpers";
+import { Blockie, BlockieState } from "./Blockies";
 
 type Props = {
   data: AssetTableData[];
@@ -138,11 +139,16 @@ export interface TransactionTableData {
   type: string;
   from: string;
   to: string;
+  hash: string;
   data: string;
+  fee?: string;
+  extras?: Record<string, string>;
 }
 
 type TransactionTableProps = {
   address: string;
+  addressPath: string;
+  transactionPath: string;
   data: TransactionTableData[];
   limit?: number;
 };
@@ -155,11 +161,20 @@ const icons: Record<string, IconDefinition> = {
 
 export const TransactionsTable: React.FunctionComponent<TransactionTableProps> = ({
   address,
+  addressPath,
+  transactionPath,
   data,
   limit = 100,
 }): JSX.Element => {
   const { t, i18n } = useTranslation();
   const records = datedRecordFromArray(data);
+
+  const getBlockieAddress = (addr: string, uri?: string) => (
+    <address>
+      <Blockie skeleton={<></>} state={BlockieState.SUCCESS} address={addr} />
+      {uri ? <a href={uri.replace("{}", addr)}>{shortDisplayAddress(addr)}</a> : shortDisplayAddress(addr)}
+    </address>
+  );
 
   const buildRow = (index: number, record: TransactionTableData): JSX.Element => {
     const time = Intl.DateTimeFormat(i18n.language, {
@@ -195,9 +210,33 @@ export const TransactionsTable: React.FunctionComponent<TransactionTableProps> =
           <section className="d-none d-sm-none d-md-block"></section>
           <section>
             <em>{t(type === "send" ? "to" : "from")}</em>
-            <address>{shortDisplayAddress(type === "send" ? record.to : record.from)}</address>
+            {getBlockieAddress(type === "send" ? record.to : record.from, addressPath)}
           </section>
         </div>
+        <details>
+          <summary>{t("details")}</summary>
+          <div>
+            <section>
+              <em>Tx Hash</em>
+              <a href={transactionPath.replace("{}", record.hash)} target="_blank" rel="noreferrer">
+                {shortTransactionHash(record.hash)}
+              </a>
+            </section>
+            {record.fee && (
+              <section>
+                <em>{t("fee")}</em>
+                <span>{record.fee}</span>
+              </section>
+            )}
+            {record.extras &&
+              Object.keys(record.extras).map((key, index) => (
+                <section key={index}>
+                  <em>{t(key)}</em>
+                  <span>{record.extras ? record.extras[key] : "N/A"}</span>
+                </section>
+              ))}
+          </div>
+        </details>
         <hr />
       </TransactionRowStyle>
     );
@@ -266,11 +305,44 @@ const TransactionDateBlockStyle = styled.section`
 `;
 
 const TransactionRowStyle = styled.article`
-  & div {
+  & div,
+  details > div {
     display: flex;
+    flex-wrap: wrap;
     flex-direction: row;
-    justify-content: space-between;
     align-items: center;
+    justify-content: flex-start;
+
+    *:nth-child(3) {
+      margin-left: 0;
+    }
+
+    *:nth-child(4) {
+      margin-left: 45px;
+    }
+  }
+
+  & details {
+    margin-left: 65px;
+
+    & div {
+      margin-left: 0 !important;
+
+      & section {
+        max-width: 33%;
+        margin-left: 0 !important;
+      }
+
+      & span {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
+
+    & summary {
+      padding-bottom: 10px;
+    }
   }
 
   & div,
@@ -281,8 +353,7 @@ const TransactionRowStyle = styled.article`
   & figure {
     display: flex;
     flex-direction: row;
-    justify-content: center;
-    margin: 0.5rem;
+    padding: 0.5rem;
 
     & svg {
       width: 40px !important;
@@ -293,16 +364,44 @@ const TransactionRowStyle = styled.article`
     & figcaption {
       display: flex;
       flex-direction: column;
-
-      & em {
-        color: ${(props: ThemeEngine) => props.theme.textSubdued};
-      }
     }
+  }
+
+  section > em {
+    color: ${(props: ThemeEngine) => props.theme.textSubdued};
   }
 
   & section {
     display: flex;
     flex-direction: column;
+
+    & img {
+      width: 16px;
+      margin-right: 10px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+  }
+
+  & figure,
+  section {
+    text-align: left;
+    flex: 0 0 33.333333%;
+  }
+
+  @media screen and (max-width: 768px) {
+    & figure,
+    section {
+      flex: 0 0 33.333333%;
+    }
+
+    *:nth-child(3) {
+      margin-left: 45px;
+    }
+
+    *:nth-child(4) {
+      margin-left: 0;
+    }
   }
 `;
 

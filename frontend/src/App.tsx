@@ -8,10 +8,10 @@ import "./scss/custom.scss";
 
 import * as Constants from "./Constants";
 import { GlobalStyle } from "./styles/GlobalStyle";
+import { Themes, availableThemes, darkTheme } from "./styles/Themes";
 import Toaster, { addToast as toast, ToasterTypes } from "./layout/Toaster";
 import { NavState } from "./layout/NavToggle";
 import Overlay, { OverlayState } from "./layout/Overlay";
-import { Themes, availableThemes, darkTheme } from "./styles/Themes";
 import BackTop from "./components/BackTop";
 import { localStoreOr } from "./utils/data-helpers";
 

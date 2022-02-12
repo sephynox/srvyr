@@ -1,5 +1,5 @@
 import { IconDefinition } from "@fortawesome/fontawesome-svg-core";
-import React, { Component, useContext } from "react";
+import React, { useContext } from "react";
 import { useTranslation } from "react-i18next";
 import { NavLink } from "react-router-dom";
 
@@ -24,7 +24,7 @@ export type NavBlock = {
   text: string;
   icon: IconDefinition;
   to: string;
-  component: () => JSX.Element | Component;
+  component: React.FunctionComponent;
   keyId?: number;
   className?: string;
   activeClassName?: string;

@@ -27,7 +27,10 @@ export const buildTransactionTableData = (transactions: Transaction[]): Transact
       type: t.type,
       from: t.from,
       to: t.to,
+      hash: t.hash,
       data: t.data,
+      fee: t.fee,
+      extras: t.extras,
     }))
     .sort((a, b) => b.timestamp - a.timestamp);
 };

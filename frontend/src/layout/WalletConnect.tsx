@@ -48,7 +48,11 @@ const WalletConnect: React.FunctionComponent = (): JSX.Element => {
   }
 
   const activateConnection = async () => {
-    activateBrowserWallet();
+    try {
+      await activateBrowserWallet();
+    } catch (e) {
+      alert(JSON.stringify(e));
+    }
   };
 
   const deactivateConnection = () => {

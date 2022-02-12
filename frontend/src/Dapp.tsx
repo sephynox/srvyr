@@ -88,6 +88,7 @@ export enum DappAction {
 
 enum InternalDappAction {
   RESOLVE_TOKENS = "RESOLVE_TOKENS",
+  RESOLVE_TOKENS_INTERFACES = "RESOLVE_TOKENS_INTERFACES",
   ACK_ADDED_ADDRESS = "ACK_ADDED_ADDRESS",
   ACK_REMOVED_ADDRESS = "ACK_REMOVED_ADDRESS",
   ACK_FOLLOWED_ADDRESS = "ACK_FOLLOWED_ADDRESS",
@@ -128,6 +129,7 @@ export type DappActions =
   | { type: DappAction.ADD_CACHE_TRANSACTIONS; address: Address; transactions: Transaction[] }
   | { type: DappAction.RESOLVE_TOKEN_PRICES; prices: FetchState<Record<Contract, PriceData>> }
   | { type: InternalDappAction.RESOLVE_TOKENS; tokens: FetchState<TokenData[]> }
+  | { type: InternalDappAction.RESOLVE_TOKENS_INTERFACES; interfaces: FetchState<Record<Networks, unknown>> }
   | { type: InternalDappAction.ACK_ADDED_ADDRESS }
   | { type: InternalDappAction.ACK_REMOVED_ADDRESS }
   | { type: InternalDappAction.ACK_SWITCHED_PRIMARY_ADDRESS }
@@ -142,6 +144,7 @@ type DappState = {
   userAddresses: NSLookupState[];
   activeAddress: NSLookupState;
   tokenLookupState: FetchState<TokenData[]>;
+  tokenInterfacesState: FetchState<Record<Networks, unknown>>;
   tokenLookupCache: TokenLookupCache;
   priceLookupState: FetchState<Record<Contract, PriceData>>;
   priceLookupCache: PriceLookupCache;
@@ -162,6 +165,10 @@ const initialTokenLookupState: FetchState<TokenData[]> = {
   type: FetchStates.EMPTY,
 };
 
+const initialTokenInterfacesState: FetchState<Record<Networks, unknown>> = {
+  type: FetchStates.EMPTY,
+};
+
 const hardStateResets = {
   eventHost: initialEventHost,
   tokenLookupState: initialTokenLookupState,
@@ -175,6 +182,7 @@ const initialDappState: DappState = localStoreOr("dappState", {
   addressPortfolioCache: initialAssetPortfolioCache,
   activeAddress: initialNSLookupState,
   tokenLookupCache: initialTokenLookupCache,
+  tokenInterfacesState: initialTokenInterfacesState,
   priceLookupCache: initialPriceLookupCache,
   transactionCache: initialTransactionCache,
   nsLookupCache: initialNSLookupCache,
@@ -246,6 +254,17 @@ const dappReducer = (state: DappState, action: DappActions): DappState => {
         case FetchStates.SUCCESS:
           const cache = buildTokenCache(action.tokens.data);
           return { ...state, tokenLookupState: action.tokens, tokenLookupCache: cache };
+        case FetchStates.EMPTY:
+        default:
+          return state;
+      }
+    case InternalDappAction.RESOLVE_TOKENS_INTERFACES:
+      switch (action.interfaces.type) {
+        case FetchStates.FETCHING:
+        case FetchStates.ERROR:
+          return { ...state, tokenInterfacesState: action.interfaces };
+        case FetchStates.SUCCESS:
+          return { ...state, tokenInterfacesState: action.interfaces };
         case FetchStates.EMPTY:
         default:
           return state;
@@ -378,15 +397,15 @@ const Dapp: React.FunctionComponent = (): JSX.Element => {
     switch (state.tokenLookupState.type) {
       case FetchStates.FETCHING:
       case FetchStates.ERROR:
-        break;
       case FetchStates.SUCCESS:
-        break;
+        return;
       case FetchStates.EMPTY:
         if (!isCacheValid(state.tokenLookupCache.age, Constants.DEFAULT_REFRESH_INTERVAL)) {
           await fetchTokens(EthereumTokenStandards.ERC20)((state: FetchState<TokenData[]>) => {
             isMounted.current && dispatch({ type: InternalDappAction.RESOLVE_TOKENS, tokens: state });
           });
         }
+        return;
     }
   }, [state.tokenLookupState.type, state.tokenLookupCache, isMounted]);
 
@@ -475,7 +494,7 @@ const Dapp: React.FunctionComponent = (): JSX.Element => {
   );
 };
 
-export default Dapp;
+export default React.memo(Dapp);
 
 const MainStyle = styled.main`
   flex-basis: 100%;

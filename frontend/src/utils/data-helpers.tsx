@@ -15,7 +15,12 @@ export const chunkArray = <T,>(array: Array<T>, chunkSize: number): Array<Array<
 
 export const spliceOrArray = <T,>(val: T, array: T[]): T[] => {
   const remove = array.indexOf(val);
-  return remove > -1 ? array.splice(remove, 1) : array;
+
+  if (remove > -1) {
+    array.splice(remove, 1);
+  }
+
+  return array;
 };
 
 // Thanks https://stackoverflow.com/a/61414961/8177368
@@ -57,12 +62,16 @@ export const isCacheValid = (age: number, ttl: number): boolean => {
   return age > Date.now() - ttl;
 };
 
-export const shortDisplayAddress = (address?: string | null) => {
+export const shortDisplayAddress = (address?: string | null, start = 6, end = 4) => {
   if (!!address) {
-    return `${address.substring(0, 5)}...${address.substring(address.length - 4, address.length)}`;
+    return `${address.substring(0, start)}...${address.substring(address.length - end, address.length)}`;
   } else {
     return "";
   }
+};
+
+export const shortTransactionHash = (address?: string | null) => {
+  return shortDisplayAddress(address, 3, 5);
 };
 
 export const localStoreOr = <T,>(key: string, fallback: T): T => {
